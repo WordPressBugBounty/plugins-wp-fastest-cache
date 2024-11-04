@@ -2225,7 +2225,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">ALL <span class="db-number">(0)</span></div>
-				    					<p>Run the all options</p>
+				    					<p>Clean all of them</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
@@ -2236,7 +2236,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">Post Revisions <span class="db-number">(0)</span></div>
-				    					<p>Clean the all post revisions</p>
+				    					<p>Clean all post revisions</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
@@ -2247,7 +2247,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">Trashed Contents <span class="db-number">(0)</span></div>
-				    					<p>Clean the all trashed posts & pages</p>
+				    					<p>Clean all trashed posts & pages</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
@@ -2258,7 +2258,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">Trashed & Spam Comments <span class="db-number">(0)</span></div>
-				    					<p>Clean the all comments from trash & spam</p>
+				    					<p>Clean all comments from trash & spam</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
@@ -2269,7 +2269,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">Trackbacks and Pingbacks <span class="db-number">(0)</span></div>
-				    					<p>Clean the all trackbacks and pingbacks</p>
+				    					<p>Clean all trackbacks and pingbacks</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
@@ -2280,7 +2280,7 @@
 				    				</div>
 				    				<div class="app db">
 				    					<div style="font-weight:bold;font-size:14px;">Transient Options <span class="db-number">(0)</span></div>
-				    					<p>Clean the all transient options</p>
+				    					<p>Clean all transient options</p>
 				    				</div>
 				    				<div class="meta"></div>
 				    			</div>
