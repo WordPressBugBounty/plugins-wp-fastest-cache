@@ -808,6 +808,9 @@
 				$trailing_slash_rule = "RewriteCond %{REQUEST_URI} ![^\/]+\/$"."\n";
 			}
 
+			$query_string = "RewriteCond %{QUERY_STRING} !.+ [OR]"."\n".
+							"RewriteCond %{QUERY_STRING} fbclid="."\n";
+
 			$data = "# BEGIN WpFastestCache"."\n".
 					"# Modified Time: ".date("d-m-y G:i:s", current_time('timestamp'))."\n".
 					"<IfModule mod_rewrite.c>"."\n".
@@ -825,7 +828,8 @@
 					"RewriteCond %{REQUEST_URI} !(\/){2,}"."\n".
 					"RewriteCond %{THE_REQUEST} !(\/){2,}"."\n".
 					$trailing_slash_rule.
-					"RewriteCond %{QUERY_STRING} !.+"."\n".$loggedInUser.
+					$query_string.
+					$loggedInUser.
 					$consent_cookie.
 					"RewriteCond %{HTTP:Cookie} !comment_author_"."\n".
 					//"RewriteCond %{HTTP:Cookie} !woocommerce_items_in_cart"."\n".
@@ -2371,15 +2375,30 @@
 					</style>
 				<div class="omni_admin_sidebar_section wpfc-sticky-notification" style="width: 100%;">
 		            <main role="main" class="">
-		                <div data-variant="7361" class="sticky-common-banner">
-		                    <div class="header">
-		                    	<img class="header-logo disable-lazy" src="<?php echo plugins_url("wp-fastest-cache/images/crown.png?v=1"); ?>" data-pin-no-hover="true" />
 
-		                        <h5 class="title">Make today the day you say goodbye to slowness.</h5>
-		                    </div>
-		                    <img class="visual disable-lazy" src="<?php echo plugins_url("wp-fastest-cache/images/price-mini-banner.jpg"); ?>" alt="Make today the day you say goodbye to slowness." data-pin-no-hover="true">
-		                    <a href="https://www.wpfastestcache.com/#buy" target="_blank" class="stickyFooterBannerCTA main-cta">Sign Up Now!</a>
-		                </div>
+
+
+		            	<?php if (get_locale() === 'tr_TR') { ?>
+		            		<a href="https://apps.apple.com/tr/app/i-ngilizce-kelimeler-%C3%B6%C4%9Fren/id1492827466?l=tr" target="_blank">
+		            			<img class="visual disable-lazy" src="<?php echo plugins_url("wp-fastest-cache/images/ads/" . rand(1, 6) . ".jpg"); ?>" alt="İngilizce Kelime Öğren!" data-pin-no-hover="true">
+		            		</a>
+		            	<?php }else{ ?>
+			                <div data-variant="7361" class="sticky-common-banner">
+			                    <div class="header">
+			                    	<img class="header-logo disable-lazy" src="<?php echo plugins_url("wp-fastest-cache/images/crown.png?v=1"); ?>" data-pin-no-hover="true" />
+
+			                        <h5 class="title">Make today the day you say goodbye to slowness.</h5>
+			                    </div>
+			                    <img class="visual disable-lazy" src="<?php echo plugins_url("wp-fastest-cache/images/price-mini-banner.jpg"); ?>" alt="Make today the day you say goodbye to slowness." data-pin-no-hover="true">
+			                    <a href="https://www.wpfastestcache.com/#buy" target="_blank" class="stickyFooterBannerCTA main-cta">Sign Up Now!</a>
+			                </div>
+		            	<?php } ?>
+
+
+
+
+
+
 		            </main>					
 				</div>
 				<?php } ?>

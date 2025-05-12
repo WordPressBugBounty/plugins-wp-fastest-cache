@@ -380,7 +380,7 @@
 					if($response_code == 200){
 						$res = array("success" => true);
 					}else{
-						if(method_exists($response, "get_error_message")){
+						if (is_object($response) && method_exists($response, "get_error_message")) {
 							$res = array("success" => false, "error_message" => $response->get_error_message());
 						}else{
 							$res = array("success" => false, "error_message" => wp_remote_retrieve_response_message($response));
@@ -403,7 +403,11 @@
 						}
 
 						if(($response_code == 403) && (preg_match("/cloudfront\.net/i", $_GET["url"]))){
-							$res = array("success" => false, "error_message" => "<a href='https://www.wpfastestcache.com/warnings/amazon-s3-cloudfront-access-denied-403-forbidden/' target='_blank'>Please Read: https://www.wpfastestcache.com/warnings/amazon-s3-cloudfront-access-denied-403-forbidden</a>");
+							$res = array("success" => false, "error_message" => "<a href='https://www.wpfastestcache.com/blog/how-to-fix-403-access-denied-errors-during-cdn-integration/#wpft-amazon-cloudfront' target='_blank'>Please Read: Amazon CloudFront 403 Error</a>");
+						}
+
+						if(($response_code == 403) && (preg_match("/b\-cdn\.net/i", $_GET["url"]))){
+							$res = array("success" => false, "error_message" => "<a href='https://www.wpfastestcache.com/blog/how-to-fix-403-access-denied-errors-during-cdn-integration/#wpft-bunny-cdn' target='_blank'>Please Read: BunnyCDN 403 Error</a>");
 						}
 					}
 				}
