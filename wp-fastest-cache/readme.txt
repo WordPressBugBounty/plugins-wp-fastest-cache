@@ -2,9 +2,9 @@
 Contributors: emrevona
 Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
-Requires at least: 3.3
+Requires at least: 5.3
 Tested up to: 6.8
-Stable tag: 1.3.7
+Stable tag: 1.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,6 +116,12 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.3.8 =
+* Added a condition to exclude <script type="module"> tags from js combining 
+* Fixed: Issue where the cache was not being cleared when a page was deleted
+* Fixed: PHP fatal error caused by an undefined function current_datetime() in cache.php on line 1130
+* Added support for fetching and processing multiple pages of Cloudflare zones to ensure all potential matches are considered
 
 = 1.3.7 =
 * <strong>[Improvement]</strong> Serve cached content via .htaccess rules instead of PHP when URLs include the fbclid query string
