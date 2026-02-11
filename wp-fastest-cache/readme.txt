@@ -1,4 +1,4 @@
-=== WP Fastest Cache ===
+=== WP Fastest Cache - WordPress Cache Plugin ===
 Contributors: emrevona
 Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
