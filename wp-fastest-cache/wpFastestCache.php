@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.4.7
+Version: 1.4.8
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -2211,8 +2211,25 @@ GNU General Public License for more details.
 
                     // ---------- COOKIE ----------
                     else if($value->type == "cookie"){
-                        $safe_content = preg_quote($content, "/");
-                        $htaccess_page_cookie .= "RewriteCond %{HTTP:Cookie} !".$safe_content." [NC]\n";
+
+
+                    	if($value->prefix == "contain"){
+
+	                        $safe_content = preg_quote($content, "/");
+	                        $htaccess_page_cookie .= "RewriteCond %{HTTP:Cookie} !".$safe_content." [NC]\n";
+
+                    	}else if($value->prefix == "regex"){
+
+                    		// basit regex validation (çok kırılmayı önler)
+                            if(@preg_match("/".$content."/", null) === false){
+                                continue; // hatalı regex skip
+                            }
+
+                            $htaccess_page_cookie .= "RewriteCond %{HTTP:Cookie} !".$content." [NC]\n";
+
+                    	}
+
+
                     }
                 }
             }
@@ -2254,13 +2271,13 @@ GNU General Public License for more details.
 			
 		}
 
-		public function rm_folder_recursively($dir, $i = 1) {
+		public function rm_folder_recursively($dir, &$i = 1) {
 
 		    if (!is_dir($dir)) {
 		        return true;
 		    }
 
-		    $files = scandir($dir);
+		    $files = @scandir($dir);
 		    
 		    if ($files === false) {
 		        return true;
@@ -2272,26 +2289,28 @@ GNU General Public License for more details.
 		            continue;
 		        }
 
-		        if ($i > 50 && !preg_match("/wp-fastest-cache-premium/i", $dir)) {
+		        if ($i > 100 && !preg_match("/wp-fastest-cache-premium/i", $dir)) {
 		            return true;
 		        }
 
 		        $path = $dir . '/' . $file;
 
 		        if (is_dir($path)) {
-		            $this->rm_folder_recursively($path, $i + 1);
+		            $this->rm_folder_recursively($path, $i);
 		        } else {
 		            if (file_exists($path)) {
-		                unlink($path);
+		                @unlink($path);
+
+		                $i++;
 		            }
 		        }
 		    }
 
 		    if (is_dir($dir)) {
-		        $files_tmp = scandir($dir);
+		        $files_tmp = @scandir($dir);
 
 		        if ($files_tmp !== false && count($files_tmp) <= 2) {
-		            rmdir($dir);
+		            @rmdir($dir);
 		        }
 		    }
 

@@ -297,10 +297,14 @@
 					}
 				}else{
 					if(type != "page"){
-						if(this.value != "contain"){
+
+						if(type == "cookie" && this.value == "regex"){
+
+						}else if(this.value != "contain"){
 							jQuery(this).remove();
 							
 						}
+
 					}
 
 				}

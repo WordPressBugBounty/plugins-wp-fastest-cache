@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 6.9
-Stable tag: 1.4.7
+Stable tag: 1.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,11 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.4.8 =
+* to fix PHP Warning: unlink(), scandir(), rmdir() No such file or directory in wpFastestCache.php on lines 2285, 2291, 2294
+* Added regex support to the cookie exclude feature
+* Added protection to block null byte injection attempt
 
 = 1.4.7 =
 * to fix E_WARNING: scandir(): No such file or directory in wpFastestCache.php  on line 2208 and 2227
