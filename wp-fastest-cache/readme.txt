@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 7.0
-Stable tag: 1.4.9
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,10 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.0 =
+* Fixed: Replaced the non-standard text/js MIME type with a valid JavaScript content type for missing minified JS file responses
+* Fixed: Resolved an issue where the preload tool could fail while processing the sitemap.
 
 = 1.4.9 =
 * Tested and confirmed full compatibility with WordPress 7.0 to ensure smooth and reliable plugin performance

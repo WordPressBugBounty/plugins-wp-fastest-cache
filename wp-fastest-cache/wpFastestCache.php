@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.4.9
+Version: 1.5.0
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -296,7 +296,7 @@ GNU General Public License for more details.
 									if(preg_match("/\.css/", $this->current_url())){
 										header('Content-type: text/css');
 									}else if(preg_match("/\.js/", $this->current_url())){
-										header('Content-type: text/js');
+										header('Content-type: text/javascript');
 									}
 
 									echo file_get_contents($this->getWpContentDir("/cache/wpfc-minified/").$path[1]."/".$sources[0]);
@@ -312,7 +312,7 @@ GNU General Public License for more details.
 								header('Content-type: text/css');
 								die("/* File not found */");
 							}else if(preg_match("/\.js/", $this->current_url())){
-								header('Content-type: text/js');
+								header('Content-type: text/javascript');
 								die("//File not found");
 							}
 						}
