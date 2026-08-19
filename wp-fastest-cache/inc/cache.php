@@ -346,7 +346,9 @@
 					if(preg_match("/\?amp(\=1)?/i", $_SERVER["REQUEST_URI"])){
 						//
 					}else if(defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
-						//
+
+                        return 0;
+                        
 					}else if(isset($_GET["wc-api"]) && $_GET["wc-api"]){
 						//
 					}else{

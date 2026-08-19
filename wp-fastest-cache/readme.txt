@@ -3,8 +3,8 @@ Contributors: emrevona
 Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
-Tested up to: 7.0
-Stable tag: 1.5.0
+Tested up to: 7.1
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,11 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.1 =
+* <strong>[Improvement]</strong> Validates Polylang domain mappings against an allowlist to prevent security risks
+* <strong>[Improvement]</strong> Added protection against feed cache poisoning via query string parameters
+* Prevent caching URLs that contain query strings
 
 = 1.5.0 =
 * Fixed: Replaced the non-standard text/js MIME type with a valid JavaScript content type for missing minified JS file responses

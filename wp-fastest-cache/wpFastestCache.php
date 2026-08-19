@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.5.0
+Version: 1.5.1
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -121,8 +121,11 @@ GNU General Public License for more details.
 			add_action( 'wp_ajax_wpfc_db_statics', array($this, 'wpfc_db_statics_callback'));
 			add_action( 'wp_ajax_wpfc_db_fix', array($this, 'wpfc_db_fix_callback'));
 			add_action( 'rate_post', array($this, 'wp_postratings_clear_fastest_cache'), 10, 2);
-			add_action( 'user_register', array($this, 'modify_htaccess_for_new_user'), 10, 1);
-			add_action( 'profile_update', array($this, 'modify_htaccess_for_new_user'), 10, 1);
+            add_action( 'user_register', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
+            add_action( 'profile_update', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
+            add_action( 'set_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
+            add_action( 'add_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
+            add_action( 'remove_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
 			add_action( 'edit_terms', array($this, 'delete_cache_of_term'), 10, 1);
 
 			add_action( 'wp_ajax_wpfc_save_csp', array($this, 'wpfc_save_csp_callback'));
@@ -181,20 +184,7 @@ GNU General Public License for more details.
 
 			// to clear cache after ajax request by other plugins
 			if(isset($_POST["action"])){
-				// All In One Schema.org Rich Snippets
-				if(preg_match("/bsf_(update|submit)_rating/i", $_POST["action"])){
-					if(isset($_POST["post_id"])){
-						$this->singleDeleteCache(false, $_POST["post_id"]);
-					}
-				}
 
-				// Yet Another Stars Rating
-				if($_POST["action"] == "yasr_send_visitor_rating"){
-					if(isset($_POST["post_id"])){
-						// to need call like that because get_permalink() does not work if we call singleDeleteCache() directly
-						add_action('init', array($this, "singleDeleteCache"));
-					}
-				}
 			}
 
 			// to clear /tmpWpfc folder
@@ -497,17 +487,48 @@ GNU General Public License for more details.
 				}
 			}
 
-			// to change content url if a different url is used for other langs
-			if($this->isPluginActive('polylang/polylang.php') || $this->isPluginActive('polylang-pro/polylang.php')){
-				$url =  parse_url($content_url);
 
-				if(isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']){
-					if($url["host"] != $_SERVER['HTTP_HOST']){
-						$protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
-						$content_url = $protocol.$_SERVER['HTTP_HOST'].$url['path'];
-					}
-				}
-			}
+            // to change content url if a different url is used for other langs
+            if($this->isPluginActive('polylang/polylang.php') || $this->isPluginActive('polylang-pro/polylang.php')){
+
+                $url = parse_url($content_url);
+
+                if(isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST']){
+
+                    if($url["host"] != $_SERVER['HTTP_HOST']){
+
+                        $options = get_option('polylang');
+
+                        if (isset($options['domains']) && is_array($options['domains'])){
+
+                            $allowed_hosts = array();
+
+                            foreach ($options['domains'] as $domain) {
+
+                                $host = parse_url(
+                                    strpos($domain, '://') === false ? 'https://' . $domain : $domain,
+                                    PHP_URL_HOST
+                                );
+
+                                if ($host) {
+                                    $allowed_hosts[] = strtolower($host);
+                                }
+                            }
+
+                            if(in_array(strtolower(trim($_SERVER['HTTP_HOST'])), $allowed_hosts, true)){
+
+                                $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] != 'off') || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+
+                                $content_url = $protocol . strtolower(trim($_SERVER['HTTP_HOST'])) . $url['path'];
+                            }
+
+                        }
+
+                    }
+
+                }
+            }
+
 
 			if (!defined('WPFC_WP_CONTENT_URL')) {
 				define("WPFC_WP_CONTENT_URL", $content_url);
