@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,14 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.2 =
+* Security Enhancements
+* Allow Author role and above for the Auto Cache feature
+* <strong>[FEATURE]</strong> Added support for clearing the cache by URL [<a target="_blank" href="https://www.wpfastestcache.com/tutorial/delete-the-cache-by-calling-the-function/#wpft-5-clear-cache-by-url">Details</a>]
+* Fixed: Incorrect cache expiration header configuration
+* Added manage_options capability checks to Varnish cache AJAX actions, preventing unauthorized users from modifying, pausing, resuming, removing, or purging Varnish cache settings
+* Added administrator-only access checks for specific page cache actions, preventing unauthorized users from viewing, adding, or removing cache-clearing rules
 
 = 1.5.1 =
 * <strong>[Improvement]</strong> Validates Polylang domain mappings against an allowlist to prevent security risks

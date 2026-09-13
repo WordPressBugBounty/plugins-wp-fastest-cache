@@ -676,7 +676,7 @@
 					'ExpiresByType application/x-font-truetype A10368000'."\n".
 					'</IfModule>'."\n".
 					'<IfModule mod_headers.c>'."\n".
-					'Header set Expires "max-age=A10368000, public"'."\n".
+					'Header set Expires "max-age=10368000, public"'."\n".
 					'Header unset ETag'."\n".
 					'Header set Connection keep-alive'."\n".
 					'FileETag None'."\n".

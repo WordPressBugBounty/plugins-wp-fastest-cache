@@ -2,7 +2,11 @@
 	class ClearingSpecificPagesWPFC{
 
 		public static function remove(){
-			if(!wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
+			if(!current_user_can('manage_options')){
+				wp_die('Must be admin');
+			}
+
+			if(!isset($_POST["security"]) || !wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
 				die( 'Security check' );
 			}
 
@@ -51,7 +55,11 @@
 		}
 
 		public static function save(){
-			if(!wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
+			if(!current_user_can('manage_options')){
+				wp_die('Must be admin');
+			}
+
+			if(!isset($_POST["security"]) || !wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
 				die( 'Security check' );
 			}
 
@@ -100,7 +108,11 @@
 		}
 
 		public static function get_list(){
-			if(!wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
+			if(!current_user_can('manage_options')){
+				wp_die('Must be admin');
+			}
+
+			if(!isset($_POST["security"]) || !wp_verify_nonce($_POST["security"], 'wpfc-save-csp-ajax-nonce')){
 				die( 'Security check' );
 			}
 
