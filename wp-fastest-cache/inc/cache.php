@@ -130,7 +130,7 @@
 						if(!preg_match("/\/$/", $_SERVER["REQUEST_URI"])){
 							if(isset($_SERVER["QUERY_STRING"]) && $_SERVER["QUERY_STRING"] && defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
 							
-							}else if(preg_match("/y(ad|s)?clid\=/i", $this->cacheFilePath)){
+							}else if(preg_match("/[?&](y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $this->cacheFilePath)){
 								// yclid
 								// yadclid
 								// ysclid
@@ -217,7 +217,7 @@
 					}
 
 					//to remove query strings for cache if Yandex parameters are set
-					if(preg_match("/^y(ad|s)?clid\=/i", $query_param)){
+					if(preg_match("/^(y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $query_param)){
 						// yclid
 						// yadclid
 						// ysclid
@@ -631,7 +631,7 @@
 					$value->type = isset($value->type) ? $value->type : "page";
 
 					if($value->prefix == "yandexclickid"){
-						if(preg_match("/y(ad|s)?clid\=/i", $request_url)){
+						if(preg_match("/[?&](y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $request_url)){
 							// yclid
 							// yadclid
 							// ysclid
@@ -640,6 +640,10 @@
 						}
 					}else if($value->prefix == "googleanalytics"){
 						if(preg_match("/utm_(source|medium|campaign|content|term)/i", $request_url)){
+							return true;
+						}
+					}else if($value->prefix == "facebookclickid"){
+						if(preg_match("/(?:^|[?&])fbclid=/i", $request_url)){
 							return true;
 						}
 					}else if(isset($value->prefix) && $value->prefix && ($value->type == "page")){

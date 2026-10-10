@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.5.2
+Version: 1.5.3
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -38,6 +38,8 @@ GNU General Public License for more details.
 	if (!defined('WPFC_MAIN_PATH')) {
 		define("WPFC_MAIN_PATH", plugin_dir_path( __FILE__ ));
 	}
+
+	include_once WPFC_MAIN_PATH . 'inc/security.php';
 
 	if(!isset($GLOBALS["wp_fastest_cache_options"])){
 		if($wp_fastest_cache_options = get_option("WpFastestCache")){
@@ -125,7 +127,8 @@ GNU General Public License for more details.
             add_action( 'profile_update', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
             add_action( 'set_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
             add_action( 'add_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
-            add_action( 'remove_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 1 );
+            add_action( 'remove_user_role', array( $this, 'modify_htaccess_for_new_user' ), 10, 2 );
+            add_action( 'deleted_user', array( $this, 'modify_htaccess_for_new_user' ), 10, 3 );
 			add_action( 'edit_terms', array($this, 'delete_cache_of_term'), 10, 1);
 
 			add_action( 'wp_ajax_wpfc_save_csp', array($this, 'wpfc_save_csp_callback'));
@@ -1066,7 +1069,7 @@ GNU General Public License for more details.
 			}
 						
 			if(isset($_GET["page"]) && $_GET["page"] == "wpfastestcacheoptions"){
-				wp_enqueue_style("wp-fastest-cache-buycredit", plugins_url("wp-fastest-cache/css/buycredit.css"), array(), time(), "all");
+
 				wp_enqueue_style("wp-fastest-cache-flaticon", plugins_url("wp-fastest-cache/css/flaticon.css"), array(), time(), "all");
 				wp_enqueue_style("wp-fastest-cache-dialog", plugins_url("wp-fastest-cache/css/dialog.css"), array(), time(), "all");
 			}
@@ -2158,22 +2161,71 @@ GNU General Public License for more details.
 			}
 		}
 
-		public function modify_htaccess_for_new_user($user_id){
+		public function modify_htaccess_for_new_user($user_id, $role = null, $deleted_user = null){
+			if(current_filter() == "deleted_user"){
+				if($deleted_user && !in_array("administrator", (array)$deleted_user->roles, true)){
+					return;
+				}
+			}else if(current_filter() == "remove_user_role"){
+				if($role != "administrator"){
+					return;
+				}
+			}else{
+				$user = get_userdata($user_id);
+				if(!$user || !in_array("administrator", (array)$user->roles, true)){
+					return;
+				}
+			}
+
 			$path = ABSPATH;
 
 			if($this->is_subdirectory_install()){
 				$path = $this->getABSPATH();
 			}
 
-			$htaccess = @file_get_contents($path.".htaccess");
+			$htaccess_file = $path.".htaccess";
+			$lock_file = $htaccess_file.".wpfc.lock";
+			$lock = @fopen($lock_file, "c");
 
-			if(preg_match("/\#\s?Start_WPFC_Exclude_Admin_Cookie/", $htaccess)){
-				$rules = $this->excludeAdminCookie();
-
-				$htaccess = preg_replace("/\#\s?Start_WPFC_Exclude_Admin_Cookie[^\#]*\#\s?End_WPFC_Exclude_Admin_Cookie\s+/", $rules, $htaccess);
+			if(!$lock || !@flock($lock, LOCK_EX)){
+				if($lock){
+					@fclose($lock);
+				}
+				return;
 			}
 
-			@file_put_contents($path.".htaccess", $htaccess);
+			$htaccess = @file_get_contents($htaccess_file);
+			if($htaccess === false || !preg_match("/\#\s?Start_WPFC_Exclude_Admin_Cookie/", $htaccess)){
+				@flock($lock, LOCK_UN);
+				@fclose($lock);
+				return;
+			}
+
+			$rules = $this->excludeAdminCookie();
+			$updated_htaccess = preg_replace("/\#\s?Start_WPFC_Exclude_Admin_Cookie[^\#]*\#\s?End_WPFC_Exclude_Admin_Cookie\s+/", $rules, $htaccess);
+
+			if($updated_htaccess === null || $updated_htaccess === $htaccess){
+				@flock($lock, LOCK_UN);
+				@fclose($lock);
+				return;
+			}
+
+			$temp_file = @tempnam($path, ".wpfc-htaccess-");
+			if($temp_file){
+				$permissions = @fileperms($htaccess_file);
+				$written = @file_put_contents($temp_file, $updated_htaccess, LOCK_EX);
+				if($written === strlen($updated_htaccess)){
+					if($permissions !== false){
+						@chmod($temp_file, $permissions & 0777);
+					}
+					@rename($temp_file, $htaccess_file);
+				}else{
+					@unlink($temp_file);
+				}
+			}
+
+			@flock($lock, LOCK_UN);
+			@fclose($lock);
 		}
 
 		public function excludeAdminCookie(){
@@ -2241,6 +2293,14 @@ GNU General Public License for more details.
 
                     // ---------- PAGE RULES ----------
                     if($value->type == "page"){
+
+						if(isset($value->prefix) && $value->prefix == "facebookclickid"){
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !fbclid= [NC]\n";
+						}
+
+						if(isset($value->prefix) && $value->prefix == "yandexclickid"){
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)(?:yclid|yadclid|ymclid|ysclid|yzclid|yqrid|ybaip|etext)= [NC]\n";
+						}
 
                         // REGEX (escape yok!)
                         if(isset($value->prefix) && $value->prefix == "regex"){

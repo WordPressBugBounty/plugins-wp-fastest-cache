@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,15 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.3 =
+* <strong>[FEATURE]</strong> Added an Exclude Pages rule to exclude URLs containing Facebook Click ID (fbclid) parameters from cache
+* Updated Yandex parameter handling to include etext, alongside yclid, yadclid, ymclid, ysclid, yzclid, yqrid, and ybaip
+* <strong>[FEATURE]</strong> Added the Security tool to help protect your site from malicious scans, brute-force attacks, SQL injection attempts, XSS, path traversal attacks and other suspicious activity [<a target="_blank" href="https://www.wpfastestcache.com/blog/security-tool-detect-and-block-suspicious-activity/">Details</a>]
+* Fixed: The active settings tab now stays selected after a page refresh, and its change handlers run when restored
+* Updated the .htaccess admin cookie exclusion rules only when the affected user is an administrator
+* Added handling for deleted administrator accounts so their exclusion rules are refreshed after deletion.
+* Added locking and safer file replacement when updating .htaccess, and skip writes when the file cannot be read, the marker is missing, or the content is unchanged
 
 = 1.5.2 =
 * Security Enhancements
