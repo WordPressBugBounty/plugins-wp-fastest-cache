@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.5.3
+Version: 1.5.4
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -92,6 +92,7 @@ GNU General Public License for more details.
 
 		public function __construct(){
 			$this->set_content_url();
+			add_filter('plugin_locale', array($this, 'wpfc_plugin_locale_filter'), 10, 2);
 			
 			$optimize_image_ajax_requests = array("wpfc_revert_image_ajax_request", 
 												  "wpfc_statics_ajax_request",
@@ -678,7 +679,7 @@ GNU General Public License for more details.
 			$statics["orphaned_term_meta"] = $wpdb->get_var("SELECT COUNT(tm.meta_id) FROM {$wpdb->termmeta} tm LEFT JOIN {$wpdb->terms} t ON t.term_id = tm.term_id WHERE t.term_id IS NULL");
 			$statics["all_warnings"] += $statics["orphaned_term_meta"];
 
-			$statics["orphaned_term_relationships"] = $wpdb->get_var("SELECT COUNT(tr.object_id) FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id WHERE p.ID IS NULL");
+			$statics["orphaned_term_relationships"] = $wpdb->get_var("SELECT COUNT(tr.object_id) FROM {$wpdb->term_relationships} tr LEFT JOIN {$wpdb->posts} p ON p.ID = tr.object_id LEFT JOIN {$wpdb->terms} t ON t.term_id = tr.object_id LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id WHERE tt.term_taxonomy_id IS NULL OR (p.ID IS NULL AND t.term_id IS NULL)");
 			$statics["all_warnings"] += $statics["orphaned_term_relationships"];
 
 
@@ -1391,7 +1392,11 @@ GNU General Public License for more details.
 
 			if(!wp_is_post_revision($post->ID)){
 				if(isset($post->post_type)){
-					if($post->post_type == "nf_sub"){
+					if(in_array($post->post_type, array(
+						"nf_sub",             // Ninja Forms submissions
+						"flamingo_inbound",  // Flamingo messages
+						"flamingo_contact"   // Flamingo contacts
+					), true)){
 						return 0;
 					}
 				}
@@ -1644,7 +1649,7 @@ GNU General Public License for more details.
 						array_push($files, $mobile_path);
 					}
 
-					if(defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
+					if( defined('WPFC_CACHE_QUERYSTRING_PARAMS') && WPFC_CACHE_QUERYSTRING_PARAMS ){
 						$files_with_query_string = glob($path."\?*");
 						$mobile_files_with_query_string = glob($mobile_path."\?*");
 
@@ -2643,7 +2648,63 @@ GNU General Public License for more details.
 		}
 
 		public function wpfc_load_plugin_textdomain(){
+			$options = isset($GLOBALS['wp_fastest_cache_options']) ? $GLOBALS['wp_fastest_cache_options'] : array();
+			$selected_locale = null;
+
+			if(is_object($options) && isset($options->wpFastestCacheLanguage)){
+				$selected_locale = $options->wpFastestCacheLanguage;
+			}else if(is_array($options) && isset($options['wpFastestCacheLanguage'])){
+				$selected_locale = $options['wpFastestCacheLanguage'];
+			}
+
+			// Load the user's plugin language directly; it can differ from the
+			// WordPress site locale. English is the source language and has no MO.
+			if(is_string($selected_locale) && preg_match('/^[a-z]{2,3}(?:_[A-Z]{2})?$/', $selected_locale)){
+				if($selected_locale === 'en_US'){
+					// Mark the domain as loaded with no translations. This keeps
+					// WordPress from applying the site's non-English catalog.
+					unload_textdomain('wp-fastest-cache');
+					if(class_exists('NOOP_Translations')){
+						$GLOBALS['l10n']['wp-fastest-cache'] = new NOOP_Translations();
+					}
+					return;
+				}
+
+				$mofile = WPFC_MAIN_PATH."languages/wp-fastest-cache-".$selected_locale.".mo";
+				if(file_exists($mofile) && load_textdomain('wp-fastest-cache', $mofile)){
+					return;
+				}
+			}
+
 			load_plugin_textdomain('wp-fastest-cache', FALSE, basename( dirname( __FILE__ ) ) . '/languages/' );
+		}
+
+		public function wpfc_plugin_locale_filter($locale, $domain){
+			if($domain !== 'wp-fastest-cache'){
+				return $locale;
+			}
+
+			$options = isset($GLOBALS['wp_fastest_cache_options']) ? $GLOBALS['wp_fastest_cache_options'] : array();
+			$selected_locale = null;
+			if(is_object($options) && isset($options->wpFastestCacheLanguage)){
+				$selected_locale = $options->wpFastestCacheLanguage;
+			}else if(is_array($options) && isset($options['wpFastestCacheLanguage'])){
+				$selected_locale = $options['wpFastestCacheLanguage'];
+			}
+
+			if(!is_string($selected_locale) || !preg_match('/^[a-z]{2,3}(?:_[A-Z]{2})?$/', $selected_locale)){
+				return $locale;
+			}
+
+			if(file_exists(WPFC_MAIN_PATH."languages/wp-fastest-cache-".$selected_locale.".mo")){
+				return $selected_locale;
+			}
+
+			if($selected_locale === 'en_US'){
+				return $selected_locale;
+			}
+
+			return $locale;
 		}
 
 		public function cdn_replace_urls($matches){

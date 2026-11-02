@@ -14,6 +14,60 @@
 			return $permalink;
 		}
 
+		public static function get_archive_page_count($item_count){
+			$posts_per_page = (int)get_option("posts_per_page");
+
+			if($posts_per_page < 1){
+				return 1;
+			}
+
+			return max(1, (int)ceil($item_count / $posts_per_page));
+		}
+
+		public static function get_homepage_page_count(){
+			if(get_option("show_on_front") == "page"){
+				return 1;
+			}
+
+			$count_posts = wp_count_posts("post", array("post_status" => "publish", "suppress_filters" => true));
+
+			return self::get_archive_page_count($count_posts->publish);
+		}
+
+		public static function get_taxonomy_page_count($taxonomy){
+			$terms = get_terms(array(
+				'taxonomy' => (array)$taxonomy,
+				'hide_empty' => false,
+				'fields' => 'all',
+				'pad_counts' => false
+			));
+			$total = 0;
+
+			if(is_wp_error($terms)){
+				return $total;
+			}
+
+			foreach($terms as $term){
+				$total += self::get_archive_page_count($term->count);
+			}
+
+			return $total;
+		}
+
+		public static function get_paged_archive_url($url, $page){
+			if($page < 2){
+				return $url;
+			}
+
+			global $wp_rewrite;
+
+			if($wp_rewrite->using_permalinks()){
+				return trailingslashit($url).user_trailingslashit($wp_rewrite->pagination_base."/".$page, "paged");
+			}
+
+			return add_query_arg("paged", $page, $url);
+		}
+
 		public static function set_preload($slug){
 			$preload_arr = array();
 
@@ -143,7 +197,7 @@
 
 
 			if(isset($pre_load->homepage)){
-				$total->homepage = 1;
+				$total->homepage = self::get_homepage_page_count();
 			}
 
 			if(isset($pre_load->customposttypes)){
@@ -188,19 +242,20 @@
 			}
 
 			if(isset($pre_load->category)){
-				$total->category = wp_count_terms("category", array('hide_empty' => false));
+				$total->category = self::get_taxonomy_page_count("category");
 			}
 
 			if(isset($pre_load->tag)){
-				$total->tag = wp_count_terms("post_tag", array('hide_empty' => false));
+				$total->tag = self::get_taxonomy_page_count("post_tag");
 			}
 
 			if(isset($pre_load->customTaxonomies)){
 				$taxo = get_taxonomies(array('public' => true, '_builtin' => false), "names", "and");
 
 				if(count($taxo) > 0){
-					$total->customTaxonomies = wp_count_terms($taxo, array('hide_empty' => false));
+					$total->customTaxonomies = self::get_taxonomy_page_count(array_values($taxo));
 				}
+
 			}
 
 
@@ -260,16 +315,30 @@
 
 			// HOME
 			if(isset($current_order) && ($current_order == "homepage" || $current_order == "go")){
-				if(isset($pre_load->homepage) && $pre_load->homepage > -1){
-					if($mobile_theme){
-						array_push($urls, array("url" => get_option("home"), "user-agent" => "mobile"));
+				if($number > 0 && isset($pre_load->homepage) && $pre_load->homepage > -1){
+					$homepage_page = isset($pre_load->homepagePage) && $pre_load->homepagePage > 0 ? $pre_load->homepagePage : 1;
+					$homepage_total = self::get_homepage_page_count();
+
+					while($number > 0 && $homepage_page <= $homepage_total){
+						$homepage_url = self::get_paged_archive_url(get_option("home"), $homepage_page);
+
+						if($mobile_theme){
+							array_push($urls, array("url" => $homepage_url, "user-agent" => "mobile"));
+							$number--;
+						}
+
+						array_push($urls, array("url" => $homepage_url, "user-agent" => "desktop"));
 						$number--;
+						$pre_load->homepage++;
+						$homepage_page++;
 					}
 
-					array_push($urls, array("url" => get_option("home"), "user-agent" => "desktop"));
-					$number--;
-					
-					$pre_load->homepage = -1;
+					$pre_load->homepagePage = $homepage_page;
+
+					if($homepage_page > $homepage_total){
+						$pre_load->homepage = -1;
+						$pre_load->homepagePage = 1;
+					}
 				}
 				
 			}
@@ -403,38 +472,59 @@
 			// CATEGORY
 			if(isset($current_order) && ($current_order == "category" || $current_order == "go")){
 				if($number > 0 && isset($pre_load->category) && $pre_load->category > -1){
-					$categories = get_terms(array(
-												'taxonomy'          => array('category'),
-											    'orderby'           => 'id', 
-											    'order'             => 'ASC',
-											    'hide_empty'        => false, 
-											    'number'            => $number, 
-											    'fields'            => 'all', 
-											    'pad_counts'        => false, 
-											    'offset'            => $pre_load->category
-											));
+					$category_offset = isset($pre_load->categoryTerm) ? $pre_load->categoryTerm : 0;
+					$category_page = isset($pre_load->categoryPage) && $pre_load->categoryPage > 0 ? $pre_load->categoryPage : 1;
 
-					if(count($categories) > 0){
-						foreach ($categories as $key => $category) {
-							$term_link = get_term_link($category->slug, $category->taxonomy);
+					while($number > 0){
+						$categories = get_terms(array(
+							'taxonomy' => array('category'),
+							'orderby' => 'id',
+							'order' => 'ASC',
+							'hide_empty' => false,
+							'number' => 1,
+							'fields' => 'all',
+							'pad_counts' => false,
+							'offset' => $category_offset
+						));
 
-							if(isset($term_link->errors)){
-								continue;
-							}
-
-							if($mobile_theme){
-								array_push($urls, array("url" => $term_link, "user-agent" => "mobile"));
-								$number--;
-							}
-
-							array_push($urls, array("url" => $term_link, "user-agent" => "desktop"));
-							$number--;
-
-							$pre_load->category = $pre_load->category + 1;
+						if(is_wp_error($categories) || count($categories) == 0){
+							$pre_load->category = -1;
+							$pre_load->categoryTerm = 0;
+							$pre_load->categoryPage = 1;
+							break;
 						}
 
-					}else{
-						$pre_load->category = -1;
+						$category = reset($categories);
+						$term_link = get_term_link($category->slug, $category->taxonomy);
+						$category_total = self::get_archive_page_count($category->count);
+
+						if(is_wp_error($term_link)){
+							$category_offset++;
+							$category_page = 1;
+							continue;
+						}
+
+						$category_url = self::get_paged_archive_url($term_link, $category_page);
+
+						if($mobile_theme){
+							array_push($urls, array("url" => $category_url, "user-agent" => "mobile"));
+							$number--;
+						}
+
+						array_push($urls, array("url" => $category_url, "user-agent" => "desktop"));
+						$number--;
+						$pre_load->category++;
+						$category_page++;
+
+						if($category_page > $category_total){
+							$category_offset++;
+							$category_page = 1;
+						}
+					}
+
+					if($pre_load->category > -1){
+						$pre_load->categoryTerm = $category_offset;
+						$pre_load->categoryPage = $category_page;
 					}
 				}
 			}
@@ -442,32 +532,59 @@
 			// TAG
 			if(isset($current_order) && ($current_order == "tag" || $current_order == "go")){
 				if($number > 0 && isset($pre_load->tag) && $pre_load->tag > -1){
-					$tags = get_terms(array(
-												'taxonomy'          => array('post_tag'),
-											    'orderby'           => 'id', 
-											    'order'             => 'ASC',
-											    'hide_empty'        => false, 
-											    'number'            => $number, 
-											    'fields'            => 'all', 
-											    'pad_counts'        => false, 
-											    'offset'            => $pre_load->tag
-											));
+					$tag_offset = isset($pre_load->tagTerm) ? $pre_load->tagTerm : 0;
+					$tag_page = isset($pre_load->tagPage) && $pre_load->tagPage > 0 ? $pre_load->tagPage : 1;
 
-					if(count($tags) > 0){
-						foreach ($tags as $key => $tag) {
-							if($mobile_theme){
-								array_push($urls, array("url" => get_term_link($tag->slug, $tag->taxonomy), "user-agent" => "mobile"));
-								$number--;
-							}
+					while($number > 0){
+						$tags = get_terms(array(
+							'taxonomy' => array('post_tag'),
+							'orderby' => 'id',
+							'order' => 'ASC',
+							'hide_empty' => false,
+							'number' => 1,
+							'fields' => 'all',
+							'pad_counts' => false,
+							'offset' => $tag_offset
+						));
 
-							array_push($urls, array("url" => get_term_link($tag->slug, $tag->taxonomy), "user-agent" => "desktop"));
-							$number--;
-
-							$pre_load->tag = $pre_load->tag + 1;
-
+						if(is_wp_error($tags) || count($tags) == 0){
+							$pre_load->tag = -1;
+							$pre_load->tagTerm = 0;
+							$pre_load->tagPage = 1;
+							break;
 						}
-					}else{
-						$pre_load->tag = -1;
+
+						$tag = reset($tags);
+						$term_link = get_term_link($tag->slug, $tag->taxonomy);
+						$tag_total = self::get_archive_page_count($tag->count);
+
+						if(is_wp_error($term_link)){
+							$tag_offset++;
+							$tag_page = 1;
+							continue;
+						}
+
+						$tag_url = self::get_paged_archive_url($term_link, $tag_page);
+
+						if($mobile_theme){
+							array_push($urls, array("url" => $tag_url, "user-agent" => "mobile"));
+							$number--;
+						}
+
+						array_push($urls, array("url" => $tag_url, "user-agent" => "desktop"));
+						$number--;
+						$pre_load->tag++;
+						$tag_page++;
+
+						if($tag_page > $tag_total){
+							$tag_offset++;
+							$tag_page = 1;
+						}
+					}
+
+					if($pre_load->tag > -1){
+						$pre_load->tagTerm = $tag_offset;
+						$pre_load->tagPage = $tag_page;
 					}
 				}
 			}
@@ -478,32 +595,59 @@
 					$taxo = get_taxonomies(array('public'   => true, '_builtin' => false), "names", "and");
 
 					if(count($taxo) > 0){
-						$custom_taxos = get_terms(array(
-								'taxonomy'          => array_values($taxo),
-							    'orderby'           => 'id', 
-							    'order'             => 'ASC',
-							    'hide_empty'        => false, 
-							    'number'            => $number, 
-							    'fields'            => 'all', 
-							    'pad_counts'        => false, 
-							    'offset'            => $pre_load->customTaxonomies
+						$custom_taxonomy_offset = isset($pre_load->customTaxonomiesTerm) ? $pre_load->customTaxonomiesTerm : 0;
+						$custom_taxonomy_page = isset($pre_load->customTaxonomiesPage) && $pre_load->customTaxonomiesPage > 0 ? $pre_load->customTaxonomiesPage : 1;
+
+						while($number > 0){
+							$custom_taxos = get_terms(array(
+								'taxonomy' => array_values($taxo),
+								'orderby' => 'id',
+								'order' => 'ASC',
+								'hide_empty' => false,
+								'number' => 1,
+								'fields' => 'all',
+								'pad_counts' => false,
+								'offset' => $custom_taxonomy_offset
 							));
 
-						if(count($custom_taxos) > 0){
-							foreach ($custom_taxos as $key => $custom_tax) {
-								if($mobile_theme){
-									array_push($urls, array("url" => get_term_link($custom_tax->slug, $custom_tax->taxonomy), "user-agent" => "mobile"));
-									$number--;
-								}
-
-								array_push($urls, array("url" => get_term_link($custom_tax->slug, $custom_tax->taxonomy), "user-agent" => "desktop"));
-								$number--;
-
-								$pre_load->customTaxonomies = $pre_load->customTaxonomies + 1;
-
+							if(is_wp_error($custom_taxos) || count($custom_taxos) == 0){
+								$pre_load->customTaxonomies = -1;
+								$pre_load->customTaxonomiesTerm = 0;
+								$pre_load->customTaxonomiesPage = 1;
+								break;
 							}
-						}else{
-							$pre_load->customTaxonomies = -1;
+
+							$custom_tax = reset($custom_taxos);
+							$term_link = get_term_link($custom_tax->slug, $custom_tax->taxonomy);
+							$custom_taxonomy_total = self::get_archive_page_count($custom_tax->count);
+
+							if(is_wp_error($term_link)){
+								$custom_taxonomy_offset++;
+								$custom_taxonomy_page = 1;
+								continue;
+							}
+
+							$custom_taxonomy_url = self::get_paged_archive_url($term_link, $custom_taxonomy_page);
+
+							if($mobile_theme){
+								array_push($urls, array("url" => $custom_taxonomy_url, "user-agent" => "mobile"));
+								$number--;
+							}
+
+							array_push($urls, array("url" => $custom_taxonomy_url, "user-agent" => "desktop"));
+							$number--;
+							$pre_load->customTaxonomies++;
+							$custom_taxonomy_page++;
+
+							if($custom_taxonomy_page > $custom_taxonomy_total){
+								$custom_taxonomy_offset++;
+								$custom_taxonomy_page = 1;
+							}
+						}
+
+						if($pre_load->customTaxonomies > -1){
+							$pre_load->customTaxonomiesTerm = $custom_taxonomy_offset;
+							$pre_load->customTaxonomiesPage = $custom_taxonomy_page;
 						}
 					}else{
 						$pre_load->customTaxonomies = -1;
@@ -687,14 +831,25 @@
 					$s_value->total = substr_count($content, '<url>');
 
 					if($s_value->total == 0){
-						$pre_load->sitemaps = self::extract_sitemap_index($content, $pre_load->sitemaps);
-						unset($pre_load->sitemaps[$s_key]);
+						$extracted_sitemaps = self::extract_sitemap_index($content, $pre_load->sitemaps);
+						preg_match_all("/<sitemap><loc>([^\\>\\<]+)<\/loc><\/sitemap>/", $content, $child_sitemap_matches);
 
-						$pre_load->sitemaps = array_values($pre_load->sitemaps);
+						if(!empty($child_sitemap_matches[1])){
+							$pre_load->sitemaps = $extracted_sitemaps;
+							unset($pre_load->sitemaps[$s_key]);
+							$pre_load->sitemaps = array_values($pre_load->sitemaps);
 
+							update_option("WpFastestCachePreLoad", json_encode($pre_load));
+
+							die($s_value->url." was extracted");
+						}
+
+						// A zero URL count does not prove this is a sitemap index.
+						// Keep the configured sitemap and retry instead of saving an empty list.
+						unset($s_value->total);
 						update_option("WpFastestCachePreLoad", json_encode($pre_load));
 
-						die($s_value->url." was extracted");
+						die("Could not extract child sitemaps from ".esc_html($s_value->url)."; the sitemap entry was kept for retry.");
 					}
 				}
 

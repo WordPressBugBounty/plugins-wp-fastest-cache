@@ -188,13 +188,43 @@
         ");
 
         if (!empty($parent_ids_to_delete)) {
-            // Parent logları sil
             $ids_placeholder = implode(',', array_map('intval', $parent_ids_to_delete));
-            $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_placeholder)");
 
-            // Bu parent'lara bağlı child logları sil
+            // Delete children first so no orphaned log entries remain.
             $wpdb->query("DELETE FROM $table_name WHERE parent_id IN ($ids_placeholder)");
+            $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_placeholder)");
         }
+    }
+
+    /**
+     * Delete selected parent logs and every log entry attached to them.
+     *
+     * @param int[] $ids Log IDs selected in the security screen.
+     * @return int|false Number of parent/selected rows deleted, or false on failure.
+     */
+    function wpfc_delete_logs_with_children($ids) {
+        global $wpdb;
+
+        $ids = array_values(array_filter(array_map('absint', (array) $ids)));
+        if (empty($ids)) {
+            return 0;
+        }
+
+        $table_name = wpfc_get_logs_table_name();
+        $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+
+        // A selected ID normally identifies a parent row. Delete its children
+        // before the parent rows to keep the log table free of orphans.
+        $children_deleted = $wpdb->query(
+            $wpdb->prepare("DELETE FROM $table_name WHERE parent_id IN ($placeholders)", ...$ids)
+        );
+        if ($children_deleted === false) {
+            return false;
+        }
+
+        return $wpdb->query(
+            $wpdb->prepare("DELETE FROM $table_name WHERE id IN ($placeholders)", ...$ids)
+        );
     }
 
 
@@ -242,18 +272,16 @@
 
             /* Yeni WPFC IP Bloğu */
             $new_block  = "# BEGIN WPFC BLOCKED IPS\n";
-            $new_block .= "<FilesMatch \"\\.php$\">\n";
-            $new_block .= "    <RequireAll>\n";
-            $new_block .= "        Require all granted\n";
+            $new_block .= "<RequireAll>\n";
+            $new_block .= "    Require all granted\n";
 
             foreach ($blocked_ips as $ip) {
                 if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    $new_block .= "        Require not ip {$ip}\n";
+                    $new_block .= "    Require not ip {$ip}\n";
                 }
             }
 
-            $new_block .= "    </RequireAll>\n";
-            $new_block .= "</FilesMatch>\n";
+            $new_block .= "</RequireAll>\n";
             $new_block .= "# END WPFC BLOCKED IPS\n\n";
         }
 
@@ -372,7 +400,10 @@
 
                 -- Type 9: Cross-Site Scripting (XSS)
                 CASE WHEN SUM(type = 9 AND date > (NOW() - INTERVAL 7 DAY)) >= 3 THEN 1 ELSE 0 END AS type9_7days_flag,
-                CASE WHEN SUM(type = 9 AND date > (NOW() - INTERVAL 30 DAY)) >= 5 THEN 1 ELSE 0 END AS type9_30days_flag
+                CASE WHEN SUM(type = 9 AND date > (NOW() - INTERVAL 30 DAY)) >= 5 THEN 1 ELSE 0 END AS type9_30days_flag,
+
+                -- Type 10: Oversized POST Parameter Attack
+                CASE WHEN SUM(type = 10 AND date > (NOW() - INTERVAL 7 DAY)) >= 1 THEN 1 ELSE 0 END AS type10_7days_flag
 
 
             FROM $table_name
@@ -558,19 +589,48 @@
             || wpfc_contains_xss_payload(wp_unslash($_POST));
     }
 
-    function wpfc_is_url_using_dangerous_function($url = ""){
-        $dangerousFunctions = [
+    function wpfc_is_oversized_post_parameter_attack() {
+        if (!isset($_SERVER['REQUEST_METHOD']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+            return false;
+        }
+
+        if ( 
+            (isset($_SERVER['CONTENT_LENGTH']) && (int) $_SERVER['CONTENT_LENGTH'] > 25000) ||
+            (strlen(print_r($_POST, true)) > 25000)
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    function wpfc_is_remote_code_execution($url = ""){
+        $dangerousFunctions_in_URL = [
             'new\s*java\s*\.\s*io\s*\.InputStreamReader', // OGNL (Object-Graph Navigation Language) injection
             'php\-cgi\.exe', // php-cgi.exe
             '\/alfacgiapi\/', // /alfacgiapi/perl.alfa , /alfacgiapi/py.alfa
             'eval\-stdin\.php', // eval-stdin.php
             'wp\-plain\.php',
-            'f(?:.*?)i(?:.*?)l(?:.*?)e(?:.*?)_(?:.*?)p(?:.*?)u(?:.*?)t(?:.*?)_(?:.*?)c(?:.*?)o(?:.*?)n(?:.*?)t(?:.*?)e(?:.*?)n(?:.*?)t(?:.*?)s' // file_put_contents
+            'f(?:.*?)i(?:.*?)l(?:.*?)e(?:.*?)_(?:.*?)p(?:.*?)u(?:.*?)t(?:.*?)_(?:.*?)c(?:.*?)o(?:.*?)n(?:.*?)t(?:.*?)e(?:.*?)n(?:.*?)t(?:.*?)s', // file_put_contents
+            'terminal-xhr\.php' // ICEcoder Terminal Command Injection
         ];
 
 
-        if (preg_match('/' . implode('|', $dangerousFunctions) . '/i', $url, $matches)) {
+        if (preg_match('/' . implode('|', $dangerousFunctions_in_URL) . '/i', $url, $url_matches)) {
             return true;
+        }
+
+        if(!empty($_POST)){
+            $dangerousFunctions_in_POST = [
+                'execSync\s*\(|process\.mainModule' // React2Shell - .execSync() process.mainModule.require()
+            ];
+
+            $post_payload = print_r(wp_unslash($_POST), true);
+
+            if (preg_match('/' . implode('|', $dangerousFunctions_in_POST) . '/i', $post_payload, $post_matches)) {
+                return true;
+            }
+
         }
 
         return false;
@@ -609,7 +669,20 @@ function wpfc_insert_log($type = 0){
     $ip_address = sanitize_text_field($_SERVER['REMOTE_ADDR']);
     $url        = sanitize_text_field($_SERVER['REQUEST_URI']);
     $method     = sanitize_text_field($_SERVER['REQUEST_METHOD']);
-    $post_data  = (!empty($_POST)) ? sanitize_text_field(print_r(wpfc_redact_sensitive_post_data(wp_unslash($_POST)), true)) : "";
+
+    if(empty($_POST)){
+
+        $post_data = "";
+
+    }else{
+        $post_data = $_POST;
+
+        if (in_array($type, [2, 3, 5])) {
+            $post_data = array_intersect_key($post_data, array_flip(['user_login', 'user_email', 'log']));
+        }
+
+        $post_data  = sanitize_text_field(print_r(wpfc_redact_sensitive_post_data(wp_unslash($post_data)), true));
+    }
 
     // Whitelist kontrolü
     if ($wpdb->get_var(
@@ -728,8 +801,12 @@ function wpfc_insert_log($type = 0){
         $url        = sanitize_text_field($_SERVER['REQUEST_URI']);
         $method     = sanitize_text_field($_SERVER['REQUEST_METHOD']);
 
-        // Dangerous URL check
-        if (wpfc_is_url_using_dangerous_function($url)) {
+        if (wpfc_is_oversized_post_parameter_attack()) {
+
+            wpfc_insert_log(10);
+
+        }else if (wpfc_is_remote_code_execution($url)) {
+            
             wpfc_insert_log(4);
 
         }else if(wpfc_is_path_traversal_attempt()){
@@ -747,7 +824,7 @@ function wpfc_insert_log($type = 0){
         }else{
 
             if (is_404()) {
-                
+
                 if ($method === 'GET') {
                     wpfc_insert_log(1);
 
@@ -783,7 +860,8 @@ function wpfc_insert_log($type = 0){
             6 => 'Reconnaissance / Sensitive File Scanning',
             7 => 'SQL Injection Attempt',
             8 => 'Path Traversal / Local File Inclusion',
-            9 => 'Cross-Site Scripting (XSS) Attempt'
+            9 => 'Cross-Site Scripting (XSS) Attempt',
+            10 => 'Oversized POST Parameter Attack'
             // Add more types here as needed
         );
 
@@ -804,7 +882,19 @@ function wpfc_insert_log($type = 0){
         $remove_ids = array();
         $clear_table = false;
 
-        if ($operation === 'manage_ip') {
+        if ($operation === 'delete_ip') {
+            $target_ip = sanitize_text_field(wp_unslash($_POST['target_ip'] ?? ''));
+            if (!filter_var($target_ip, FILTER_VALIDATE_IP)) {
+                wp_send_json_error(array('message' => __('Invalid IP address.', 'wp-fastest-cache')), 400);
+            }
+
+            if ($wpdb->query($wpdb->prepare("DELETE FROM $table_name WHERE ip = %s", $target_ip)) === false) {
+                wp_send_json_error(array('message' => __('Could not delete this IP address.', 'wp-fastest-cache')), 500);
+            }
+
+            do_action('wpfc_after_ip_block_change');
+            $message = __('All records for this IP address were deleted.', 'wp-fastest-cache');
+        } elseif ($operation === 'manage_ip') {
             $target_ip = sanitize_text_field(wp_unslash($_POST['target_ip'] ?? ''));
             $ip_status = isset($_POST['ip_status']) ? absint($_POST['ip_status']) : -1;
             if (!filter_var($target_ip, FILTER_VALIDATE_IP) || !in_array($ip_status, array(0, 1, 2), true)) {
@@ -826,7 +916,9 @@ function wpfc_insert_log($type = 0){
 
             $placeholders = implode(',', array_fill(0, count($ids), '%d'));
             if ($action === 'delete') {
-                $wpdb->query($wpdb->prepare("DELETE FROM $table_name WHERE id IN ($placeholders)", ...$ids));
+                if (wpfc_delete_logs_with_children($ids) === false) {
+                    wp_send_json_error(array('message' => __('Could not delete the selected logs.', 'wp-fastest-cache')), 500);
+                }
                 $message = __('Selected logs deleted.', 'wp-fastest-cache');
             } else {
                 $statuses = array('block' => 1, 'unblock' => 0, 'whitelist' => 2);
@@ -890,8 +982,11 @@ function wpfc_insert_log($type = 0){
             .wpfc-security__ip-state.is-blocked { background: #fcf0f1; color: #b32d2e; }
             .wpfc-security__ip-state.is-whitelisted { background: #edfaef; color: #1d6b2a; }
             .wpfc-security__ip-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+            .wpfc-security__ip-controls .button-link-delete { border-color: #d63638; color: #b32d2e; background: #fff; }
+            .wpfc-security__ip-controls .button-link-delete:hover, .wpfc-security__ip-controls .button-link-delete:focus { border-color: #b32d2e; color: #fff; background: #b32d2e; }
             .wpfc-security__panel { overflow: hidden; border: 1px solid #dcdcde; border-radius: 10px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
-            .wpfc-security__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; border-bottom: 1px solid #dcdcde; background: #f6f7f7; }
+            .wpfc-security__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 11px; border-bottom: 1px solid #dcdcde; background: #f6f7f7; }
+            .wpfc-security__toolbar--ip-details { justify-content: flex-end; }
             .wpfc-security__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
             .wpfc-security__actions select { min-width: 145px; min-height: 34px; margin: 0; border-color: #c3c4c7; border-radius: 5px; }
             .wpfc-security__actions .button { min-height: 34px; margin: 0; padding: 0 12px; border-radius: 5px; font-weight: 600; line-height: 32px; }
@@ -986,7 +1081,10 @@ function wpfc_insert_log($type = 0){
 
                 switch ($_POST['action']) {
                     case 'delete':
-                        $wpdb->query($wpdb->prepare("DELETE FROM $table_name WHERE id IN ($placeholders)", ...$ids));
+                        if (wpfc_delete_logs_with_children($ids) === false) {
+                            echo '<div class="notice notice-error is-dismissible"><p>Logs could not be deleted.</p></div>';
+                            break;
+                        }
                         do_action('wpfc_after_ip_block_change'); // <-- htaccess güncelle
                         echo '<div class="notice notice-success is-dismissible"><p>Logs with matching IPs deleted.</p></div>';
                         break;
@@ -1162,9 +1260,9 @@ if (!empty($ip_filter)) {
             echo '<p class="notice notice-info">' . sprintf(esc_html(_n('Security trial: %d day remaining.', 'Security trial: %d days remaining.', $days_remaining, 'wp-fastest-cache')), $days_remaining) . '</p>';
         }
         echo '<div class="wpfc-security__summary">';
-        echo '<a href="' . $all_url . '" data-security-status="all" class="' . ($status_filter === 'all' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Activity logs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $all_count . '</span></a>';
-        echo '<a href="' . $blocked_url . '" data-security-status="blocked" class="' . ($status_filter === 'blocked' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Blocked IPs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $blocked_count . '</span></a>';
-        echo '<a href="' . $whitelisted_url . '" data-security-status="whitelisted" class="' . ($status_filter === 'whitelisted' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Whitelisted IPs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $whitelisted_count . '</span></a>';
+        echo '<a href="' . $all_url . '#wpfc-security" data-security-status="all" class="' . ($status_filter === 'all' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Activity logs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $all_count . '</span></a>';
+        echo '<a href="' . $blocked_url . '#wpfc-security" data-security-status="blocked" class="' . ($status_filter === 'blocked' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Blocked IPs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $blocked_count . '</span></a>';
+        echo '<a href="' . $whitelisted_url . '#wpfc-security" data-security-status="whitelisted" class="' . ($status_filter === 'whitelisted' && !$has_ip_filter ? 'is-active' : '') . '"><span class="wpfc-security__summary-label">' . esc_html__('Whitelisted IPs', 'wp-fastest-cache') . '</span><span class="wpfc-security__summary-count">' . $whitelisted_count . '</span></a>';
         echo '</div>';
         echo '<div class="wpfc-security__notice" role="status" aria-live="polite"></div>';
         if ($has_ip_filter && $ip_summary) {
@@ -1173,16 +1271,17 @@ if (!empty($ip_filter)) {
             echo '<section class="wpfc-security__ip-summary" data-ip-address="' . esc_attr($ip_filter) . '"><div><h2>' . esc_html__('IP history', 'wp-fastest-cache') . ': <code>' . esc_html($ip_filter) . '</code></h2>';
             echo '<p><span class="wpfc-security__ip-state' . esc_attr($ip_status_class) . '" data-ip-state data-active-label="' . esc_attr__('Active', 'wp-fastest-cache') . '" data-blocked-label="' . esc_attr__('Blocked', 'wp-fastest-cache') . '" data-whitelisted-label="' . esc_attr__('Whitelisted', 'wp-fastest-cache') . '">' . esc_html($ip_status_label) . '</span></p>';
             echo '<p>' . sprintf(esc_html__('%1$s events · Last activity: %2$s', 'wp-fastest-cache'), number_format_i18n((int) $ip_summary->event_count), esc_html($ip_summary->last_activity ?: '—')) . '</p></div>';
-            echo '<div class="wpfc-security__ip-controls" data-block-label="' . esc_attr__('Block IP', 'wp-fastest-cache') . '" data-whitelist-label="' . esc_attr__('Whitelist IP', 'wp-fastest-cache') . '" data-unblock-label="' . esc_attr__('Unblock', 'wp-fastest-cache') . '" data-remove-whitelist-label="' . esc_attr__('Remove from whitelist', 'wp-fastest-cache') . '">';
+            echo '<div class="wpfc-security__ip-controls" data-block-label="' . esc_attr__('Block IP', 'wp-fastest-cache') . '" data-whitelist-label="' . esc_attr__('Whitelist IP', 'wp-fastest-cache') . '" data-unblock-label="' . esc_attr__('Unblock', 'wp-fastest-cache') . '" data-remove-whitelist-label="' . esc_attr__('Remove from whitelist', 'wp-fastest-cache') . '" data-delete-label="' . esc_attr__('Delete', 'wp-fastest-cache') . '">';
             if ($ip_status !== 1) {
                 echo '<button type="button" class="button" data-ip-status="1">' . esc_html__('Block IP', 'wp-fastest-cache') . '</button>';
-            }
-            if ($ip_status !== 2) {
-                echo '<button type="button" class="button" data-ip-status="2">' . esc_html__('Whitelist IP', 'wp-fastest-cache') . '</button>';
             }
             if ($ip_status !== 0) {
                 echo '<button type="button" class="button" data-ip-status="0">' . ($ip_status === 2 ? esc_html__('Remove from whitelist', 'wp-fastest-cache') : esc_html__('Unblock', 'wp-fastest-cache')) . '</button>';
             }
+            if ($ip_status !== 2) {
+                echo '<button type="button" class="button" data-ip-status="2">' . esc_html__('Whitelist IP', 'wp-fastest-cache') . '</button>';
+            }
+            echo '<button type="button" class="button button-link-delete" data-ip-delete="1">' . esc_html__('Delete', 'wp-fastest-cache') . '</button>';
             echo '</div></section>';
         }
         echo '<div class="wpfc-security__panel">';
@@ -1192,27 +1291,24 @@ if (!empty($ip_filter)) {
         wp_nonce_field('wpfc_bulk_action', 'security');
 
         // Bulk actions UI
-        echo '<div class="wpfc-security__toolbar">';
-        echo '<div class="wpfc-security__actions">';
-        echo '<select name="action">
-                <option value="">Bulk actions</option>
-                <option value="delete">Delete</option>
-                <option value="whitelist">Whitelist</option>';
-        if ($status_filter !== 'blocked') {
-            echo '<option value="block">Block</option>';
+        echo '<div class="wpfc-security__toolbar' . ($has_ip_filter ? ' wpfc-security__toolbar--ip-details' : '') . '">';
+        if (!$has_ip_filter) {
+            echo '<div class="wpfc-security__actions">';
+            echo '<select name="action">
+                    <option value="">Bulk actions</option>
+                    <option value="delete">Delete</option>
+                    <option value="whitelist">Whitelist</option>';
+            if ($status_filter !== 'blocked') {
+                echo '<option value="block">Block</option>';
+            }
+            if ($status_filter !== 'all') {
+                echo '<option value="unblock">Unblock</option>';
+            }
+            echo '
+                 </select>';
+            echo '<input type="submit" class="button action" value="Apply">';
+            echo '</div>'; // .wpfc-security__actions
         }
-        if ($status_filter !== 'all') {
-            echo '<option value="unblock">Unblock</option>';
-        }
-        if ($status_filter === 'all') {
-        }
-        if ($status_filter === 'blocked') {
-        }
-        echo '
-             </select>';
-        echo '<input type="submit" class="button action" value="Apply">';
-
-        echo '</div>'; // .wpfc-security__actions
 
 
         // Pagination UI
@@ -1246,8 +1342,10 @@ if (!empty($ip_filter)) {
         // Logs table
         echo '<table class="widefat fixed striped">';
         echo '<thead><tr>';
-        echo '<td class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>';
-        echo '<th>IP</th>';
+        if (empty($ip_filter)) {
+            echo '<td class="manage-column column-cb check-column"><input type="checkbox" id="cb-select-all"></td>';
+            echo '<th>IP</th>';
+        }
 
 
         $count_order = ($orderby === 'count' && $order === 'DESC') ? 'ASC' : 'DESC';
@@ -1291,18 +1389,22 @@ if (!empty($ip_filter)) {
             $seen_ips = [];
 
             foreach ($logs as $log) {
-                $show_checkbox = !in_array($log->ip, $seen_ips);
+                $show_checkbox = empty($ip_filter) && !in_array($log->ip, $seen_ips);
 
                 echo '<tr>';
-                echo '<th scope="row" class="check-column">';
-                echo $show_checkbox
-                    ? '<input type="checkbox" name="log_ids[]" value="' . esc_attr($log->id) . '">'
-                    : '';
-                echo '</th>';
+                if (empty($ip_filter)) {
+                    echo '<th scope="row" class="check-column">';
+                    echo $show_checkbox
+                        ? '<input type="checkbox" name="log_ids[]" value="' . esc_attr($log->id) . '">'
+                        : '';
+                    echo '</th>';
+                }
 
                 if ($show_checkbox) $seen_ips[] = $log->ip;
 
-                echo '<td>' . (!empty($ip_filter) ? esc_html($log->ip) : '<a href="' . esc_url(add_query_arg('ip', $log->ip, $base_url)) . '" data-security-ip>' . esc_html($log->ip) . '</a>') . '</td>';
+                if (empty($ip_filter)) {
+                    echo '<td><a href="' . esc_url(add_query_arg('ip', $log->ip, $base_url)) . '#wpfc-security" data-security-ip>' . esc_html($log->ip) . '</a></td>';
+                }
                 
                 if (empty($ip_filter)) {
                     echo '<td>' . absint(1 + absint($log->child_count)) . '</td>';
@@ -1321,7 +1423,7 @@ if (!empty($ip_filter)) {
                 echo '</tr>';
             }
         } else {
-            $empty_colspan = empty($ip_filter) ? 5 : 6;
+            $empty_colspan = empty($ip_filter) ? 5 : 4;
             echo '<tr><td colspan="' . $empty_colspan . '" class="wpfc-security__empty">' . esc_html__('No logs found for this view.', 'wp-fastest-cache') . '</td></tr>';
         }
 
@@ -1358,20 +1460,25 @@ if (!empty($ip_filter)) {
                 const runAction = function(button) {
                     const isBulkAction = button && button.classList.contains("action");
                     const isIpAction = button && button.dataset.ipStatus !== undefined;
-                    const operation = isIpAction ? "manage_ip" : (isBulkAction ? "bulk" : (button ? button.name : ""));
-                    const validOperations = ["bulk", "manage_ip"];
+                    const isIpDeleteAction = button && button.dataset.ipDelete !== undefined;
+                    const bulkActionSelect = form.querySelector("select[name=action]");
+                    const bulkAction = bulkActionSelect ? bulkActionSelect.value : "";
+                    const isBulkIpDelete = isBulkAction && bulkAction === "delete" && root.querySelector("[data-ip-address]");
+                    const operation = isIpDeleteAction ? "delete_ip" : (isIpAction ? "manage_ip" : (isBulkAction ? "bulk" : (button ? button.name : "")));
+                    const validOperations = ["bulk", "manage_ip", "delete_ip"];
 
                     if (validOperations.indexOf(operation) === -1) {
                         return;
                     }
 
                     const data = new FormData(form);
-                    const bulkAction = form.querySelector("select[name=action]").value;
                     data.set("action", "wpfc_security_manage_logs");
                     data.set("operation", operation);
                     data.set("bulk_action", bulkAction);
-                    if (isIpAction) {
+                    if (isIpAction || isIpDeleteAction) {
                         data.set("target_ip", root.querySelector("[data-ip-address]").dataset.ipAddress);
+                    }
+                    if (isIpAction) {
                         data.set("ip_status", button.dataset.ipStatus);
                     }
 
@@ -1387,6 +1494,14 @@ if (!empty($ip_filter)) {
 
                             const result = response.data;
                             showNotice(result.message, false);
+
+                            if (isIpDeleteAction || isBulkIpDelete) {
+                                const activityLogsLink = root.querySelector("[data-security-status=all]");
+                                if (activityLogsLink) {
+                                    loadSecurityView(activityLogsLink.href);
+                                }
+                                return;
+                            }
 
                             Object.keys(result.counts).forEach(function(status) {
                                 const card = root.querySelector("[data-security-status=" + status + "] .wpfc-security__summary-count");
@@ -1461,8 +1576,11 @@ if (!empty($ip_filter)) {
                     });
                 });
 
-                root.querySelectorAll("[data-ip-status]").forEach(function(button) {
+                root.querySelectorAll("[data-ip-status], [data-ip-delete]").forEach(function(button) {
                     button.addEventListener("click", function() {
+                        if (button.dataset.ipDelete !== undefined && !window.confirm("Delete all records for this IP address?")) {
+                            return;
+                        }
                         runAction(button);
                     });
                 });

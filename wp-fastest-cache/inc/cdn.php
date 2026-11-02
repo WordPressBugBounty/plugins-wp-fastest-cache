@@ -373,6 +373,20 @@
 					$_GET["url"] = preg_replace("/http\:\/\//i", "https://", $_GET["url"]);
 				}
 				
+				// Test a real theme asset through the CDN instead of testing only its hostname.
+				if(!isset($_GET["type"]) || $_GET["type"] != "cloudflare"){
+					$origin_url = isset($_GET["origin_url"]) ? esc_url_raw($_GET["origin_url"]) : "";
+					if($origin_url && !preg_match("/^http/i", $origin_url)){
+						$origin_url = "http://".$origin_url;
+					}
+					if(preg_match("/^https/i", site_url()) && preg_match("/^https/i", home_url())){
+						$origin_url = preg_replace("/http\\:\/\\//i", "https://", $origin_url);
+					}
+					if($origin_url){
+						$_GET["url"] = str_replace(untrailingslashit($origin_url), untrailingslashit($_GET["url"]), get_stylesheet_uri());
+					}
+				}
+
 				$response = wp_safe_remote_get($_GET["url"], array('timeout' => 20, 'redirection' => 0, 'user-agent' => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/49.0.2623.110 Safari/537.36"));
 
 				$header = wp_remote_retrieve_headers($response);

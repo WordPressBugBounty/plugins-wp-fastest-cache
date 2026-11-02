@@ -80,6 +80,51 @@
 			}
 		}
 
+		/*
+		 * Returns true when every query-string parameter in the current request is
+		 * explicitly allowed to have its own cache entry.
+		 *
+		 * Example usage in wp-config.php:
+		 * define('WPFC_CACHE_QUERYSTRING_PARAMS', array('lang', 'currency'));
+		 *
+		 * A comma-separated string is also accepted to make the setting convenient
+		 * for installations which keep their constants in environment variables.
+		 */
+		public function has_cacheable_query_string_params(){
+			if(!isset($_SERVER["QUERY_STRING"]) || !$_SERVER["QUERY_STRING"] || !defined('WPFC_CACHE_QUERYSTRING_PARAMS')){
+				return false;
+			}
+
+			$allowed_params = WPFC_CACHE_QUERYSTRING_PARAMS;
+
+			if(is_string($allowed_params)){
+				$allowed_params = explode(",", $allowed_params);
+			}
+
+			if(!is_array($allowed_params) || !$allowed_params){
+				return false;
+			}
+
+			$allowed_params = array_filter(array_map('trim', $allowed_params), 'strlen');
+			if(!$allowed_params){
+				return false;
+			}
+
+			$allowed_params = array_flip($allowed_params);
+			$query_params = explode("&", $_SERVER["QUERY_STRING"]);
+
+			foreach($query_params as $query_param){
+				$query_param_parts = explode("=", $query_param, 2);
+				$query_param_name = rawurldecode($query_param_parts[0]);
+
+				if($query_param_name === "" || !isset($allowed_params[$query_param_name])){
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		public function set_cache_file_path(){
 			$type = "all";
 
@@ -95,7 +140,7 @@
 				}else if(isset($_SERVER["REDIRECT_URL"]) && $_SERVER["REDIRECT_URL"] != "/index.php"){
                     $redirect_url =  $_SERVER["REDIRECT_URL"];
 
-                    if(isset($_SERVER["REDIRECT_QUERY_STRING"]) && defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
+					if(isset($_SERVER["REDIRECT_QUERY_STRING"]) && $this->has_cacheable_query_string_params() ){
                         $redirect_url .= "?".$_SERVER["REDIRECT_QUERY_STRING"];
                     }
 
@@ -128,8 +173,8 @@
 				if(!preg_match("/\.(html|xml)/i", $_SERVER["REQUEST_URI"])){
 					if($this->is_trailing_slash()){
 						if(!preg_match("/\/$/", $_SERVER["REQUEST_URI"])){
-							if(isset($_SERVER["QUERY_STRING"]) && $_SERVER["QUERY_STRING"] && defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
-							
+							if($this->has_cacheable_query_string_params()){
+								
 							}else if(preg_match("/[?&](y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $this->cacheFilePath)){
 								// yclid
 								// yadclid
@@ -240,9 +285,6 @@
 						$this->cacheFilePath = preg_replace("/\/*\?.+/", "", $this->cacheFilePath);
 						$this->cacheFilePath = $this->cacheFilePath."/";
 
-						if(!defined('WPFC_CACHE_QUERYSTRING')){
-							define('WPFC_CACHE_QUERYSTRING', true);
-						}
 					}
 				}
 			}
@@ -290,6 +332,15 @@
 
 		public function createCache(){		
 			if(isset($this->options->wpFastestCacheStatus)){
+				if(defined("WP_INSTALLING") && WP_INSTALLING){
+					return 0;
+				}
+
+				foreach((array)$_COOKIE as $cookie_key => $cookie_value){
+					if(preg_match("/^wp-activate-/", $cookie_key)){
+						return 0;
+					}
+				}
 
 				// to exclude static pdf files
 				if(preg_match("/\.pdf$/i", $_SERVER["REQUEST_URI"])){
@@ -345,10 +396,8 @@
 				if(preg_match("/\?/", $_SERVER["REQUEST_URI"]) && !preg_match("/\/\?fdx\_switcher\=true/", $_SERVER["REQUEST_URI"])){ // for WP Mobile Edition
 					if(preg_match("/\?amp(\=1)?/i", $_SERVER["REQUEST_URI"])){
 						//
-					}else if(defined('WPFC_CACHE_QUERYSTRING') && WPFC_CACHE_QUERYSTRING){
-
-                        return 0;
-                        
+					}else if($this->has_cacheable_query_string_params()){
+						// Allowed query-string URLs are cached separately by set_cache_file_path().
 					}else if(isset($_GET["wc-api"]) && $_GET["wc-api"]){
 						//
 					}else{
@@ -565,9 +614,14 @@
 		}
 
 		public function ignored($buffer){
+			if(isset($GLOBALS["pagenow"]) && $GLOBALS["pagenow"] === "wp-activate.php"){
+				return true;
+			}
+
 			$list = array(
 						"\/wp\-comments\-post\.php",
 						"\/wp\-login\.php",
+						"\/wp\-activate\.php",
 						"\/robots\.txt",
 						"\/wp\-cron\.php",
 						"\/wp\-content",
@@ -768,6 +822,32 @@
 			}else{
 				$this->current_page_content_type = "html";
 			}
+		}
+
+		public function has_non_cacheable_headers(){
+			if(!function_exists("headers_list")){
+				return false;
+			}
+
+			foreach(headers_list() as $header){
+				if(preg_match("/^Set-Cookie\s*:/i", $header)){
+					return true;
+				}
+
+				if(preg_match("/^Cache-Control\s*:\s*.*(?:no-store|private|no-cache)/i", $header)){
+					return true;
+				}
+
+				if(preg_match("/^Expires\s*:\s*(.+)$/i", $header, $matches)){
+					$expires = strtotime($matches[1]);
+
+					if($expires !== false && $expires < time()){
+						return true;
+					}
+				}
+			}
+
+			return false;
 		}
 
 		public function last_error($buffer = false){
@@ -1015,6 +1095,10 @@
 						<link rel='stylesheet'  href='//site.com/wp-content/cache/wpfc-minified/895p0t5d/..' media='all' />
 						*/
 						return $buffer."<!-- Cache has NOT been created due to optimized resource -->";
+					}
+
+					if($this->has_non_cacheable_headers()){
+						return $content;
 					}
 
 					if($this->cacheFilePath){

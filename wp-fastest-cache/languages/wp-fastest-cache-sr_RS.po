@@ -1,0 +1,784 @@
+# Translation of Plugins - WP Fastest Cache &#8211; WordPress Cache Plugin - Development (trunk) in Serbian
+# This file is distributed under the same license as the Plugins - WP Fastest Cache &#8211; WordPress Cache Plugin - Development (trunk) package.
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2026-10-08 06:33:50+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n % 10 == 1 && n % 100 != 11) ? 0 : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? 1 : 2);\n"
+"X-Generator: GlotPress/4.1.0\n"
+"Language: sr_RS\n"
+"Project-Id-Version: Plugins - WP Fastest Cache &#8211; WordPress Cache Plugin - Development (trunk)\n"
+
+#: inc/security.php:1162
+msgid "Security trial: %d day remaining."
+msgid_plural "Security trial: %d days remaining."
+msgstr[0] "Пробни период безбедности: преостао је %d дан."
+msgstr[1] "Пробни период безбедности: преостала су %d дана."
+msgstr[2] "Пробни период безбедности: преостало је %d дана."
+
+#: inc/security.php:964
+msgid "Security is currently disabled. Enable it to start your 14-day trial and log suspicious requests, block abusive IP addresses, and reduce the server load caused by repeated attacks."
+msgstr "Безбедност је тренутно онемогућена. Омогућите је да бисте започели 14-дневни пробни период и бележили сумњиве захтеве, блокирали злонамерне IP адресе и смањили оптерећење сервера узроковано узастопним нападима."
+
+#: inc/security.php:948
+msgid "Get Premium"
+msgstr "Набавите Premium"
+
+#: inc/security.php:947
+msgid "Your 14-day Security trial has ended. Upgrade to WP Fastest Cache Premium to continue using Security."
+msgstr "Ваш 14-дневни пробни период безбедности је истекао. Надоградите на WP Fastest Cache Premium да бисте наставили са коришћењем безбедности."
+
+#: inc/security.php:946
+msgid "Security trial ended"
+msgstr "Пробни период безбедности је истекао"
+
+#: inc/security.php:1176 inc/security.php:1184
+msgid "Remove from whitelist"
+msgstr "Уклони са беле листе"
+
+#: inc/security.php:1176 inc/security.php:1184
+msgid "Unblock"
+msgstr "Одблокирај"
+
+#: inc/security.php:1176 inc/security.php:1181
+msgid "Whitelist IP"
+msgstr "Стави IP на белу листу"
+
+#: inc/security.php:1176 inc/security.php:1178
+msgid "Block IP"
+msgstr "Блокирај IP"
+
+#: inc/security.php:1175
+msgid "%1$s events · Last activity: %2$s"
+msgstr "%1$s догађаја · Последња активност: %2$s"
+
+#: inc/security.php:1173
+msgid "IP history"
+msgstr "Историја IP адресе"
+
+#: inc/security.php:1171 inc/security.php:1174
+msgid "Active"
+msgstr "Активно"
+
+#: inc/security.php:1171 inc/security.php:1174
+msgid "Whitelisted"
+msgstr "На белој листи"
+
+#: inc/security.php:1171 inc/security.php:1174
+msgid "Blocked"
+msgstr "Блокирано"
+
+#: inc/security.php:817
+msgid "IP address unblocked."
+msgstr "IP адреса је одблокирана."
+
+#: inc/security.php:817
+msgid "IP address whitelisted."
+msgstr "IP адреса је стављена на белу листу."
+
+#: inc/security.php:817
+msgid "IP address blocked."
+msgstr "IP адреса је блокирана."
+
+#: inc/security.php:814
+msgid "Could not update this IP address."
+msgstr "Није било могуће ажурирати ову IP адресу."
+
+#: inc/security.php:811
+msgid "Invalid IP address or status."
+msgstr "Неважећа IP адреса или статус."
+
+#: inc/admin.php:2024 templates/exclude.php:115
+msgid "has Facebook Click ID Parameters"
+msgstr "садржи параметре Facebook Click ID-ја"
+
+#: inc/admin.php:2023 templates/exclude.php:114
+msgid "has Yandex Metrica Parameters"
+msgstr "садржи параметре Yandex Metrica"
+
+#: inc/security.php:1325
+msgid "No logs found for this view."
+msgstr "Није пронађен ниједан дневник за овај приказ."
+
+#: inc/security.php:1167
+msgid "Whitelisted IPs"
+msgstr "IP адресе на белој листи"
+
+#: inc/security.php:1166
+msgid "Blocked IPs"
+msgstr "Блокиране IP адресе"
+
+#: inc/security.php:1165
+msgid "Activity logs"
+msgstr "Дневници активности"
+
+#: inc/security.php:1157
+msgid "Disable Security"
+msgstr "Онемогући безбедност"
+
+#: inc/security.php:1153
+msgid "Review suspicious requests, manage blocked IP addresses, and keep your activity log under control."
+msgstr "Прегледајте сумњиве захтеве, управљајте блокираним IP адресама и држите свој дневник активности под контролом."
+
+#: inc/security.php:968
+msgid "Enable Security"
+msgstr "Омогући безбедност"
+
+#: inc/security.php:963 inc/security.php:1153
+msgid "Security Center"
+msgstr "Центар безбедности"
+
+#: inc/security.php:960
+msgid "Security has been enabled."
+msgstr "Безбедност је омогућена."
+
+#: inc/security.php:940
+msgid "Security has been disabled."
+msgstr "Безбедност је онемогућена."
+
+#: inc/security.php:840
+msgid "Invalid security action."
+msgstr "Неважећа безбедносна радња."
+
+#: inc/security.php:834
+msgid "Selected logs updated."
+msgstr "Изабрани дневници су ажурирани."
+
+#: inc/security.php:830
+msgid "Selected logs deleted."
+msgstr "Изабрани дневници су обрисани."
+
+#: inc/security.php:824
+msgid "Select at least one log and an action."
+msgstr "Изаберите најмање један дневник и радњу."
+
+#: inc/security.php:795
+msgid "You do not have permission to manage security logs."
+msgstr "Немате дозволу за управљање дневницима безбедности."
+
+#: inc/security.php:75
+msgid "<strong>ERROR</strong>: Security check failed. Please try again."
+msgstr "<strong>ГРЕШКА</strong>: Безбедносна провера није успела. Покушајте поново."
+
+#: inc/admin.php:2407
+msgid "Security module could not be loaded."
+msgstr "Модул безбедности није могао бити учитан."
+
+#: inc/admin.php:1136
+msgid "Security (Beta)"
+msgstr "Безбедност (Beta)"
+
+#: templates/toolbar_settings.php:34
+msgid "The WP Fastest Cache menu on the admin toolbar will be visible to the selected user roles below."
+msgstr "Изборник WP Fastest Cache на администраторској траци биће видљив изабраним корисничким улогама испод."
+
+#: templates/toolbar_settings.php:33
+msgid "User Roles"
+msgstr "Корисничке улоге"
+
+#: templates/preload.php:374 templates/preload.php:457
+#: templates/preload.php:474
+msgid "At least one sitemap must be added"
+msgstr "Мора бити додата бар једна мапа сајта"
+
+#: templates/preload.php:187
+msgid "You can customize the advanced settings through this section."
+msgstr "Кроз овај одељак можете прилагодити напредна подешавања."
+
+#: templates/preload.php:186
+msgid "Advanced Settings"
+msgstr "Напредна подешавања"
+
+#: templates/preload.php:151
+msgid "You can specify sitemaps to be used for preloading."
+msgstr "Можете навести мапе сајта које ће се користити за претходно учитавање."
+
+#: templates/preload.php:150
+msgid "Sitemaps"
+msgstr "Мапе сајта"
+
+#: templates/preload.php:87
+msgid "You can specify the contents to be used for preloading and you can sort them as well."
+msgstr "Можете навести садржаје који ће се користити за претходно учитавање и можете их поређати."
+
+#: templates/preload.php:86
+msgid "Content Types"
+msgstr "Врсте садржаја"
+
+#: templates/preload.php:73
+msgid "You can specify the method you want the preload feature to use through this section."
+msgstr "Кроз овај одељак можете навести начин који желите да функција претходног учитавања користи."
+
+#: templates/preload.php:72
+msgid "Choose a Method"
+msgstr "Изаберите начин"
+
+#: templates/preload.php:56
+msgid "Preload Settings"
+msgstr "Подешавања претходног учитавања"
+
+#: inc/admin.php:1527 inc/admin.php:1534
+msgid "Some js sources will not be loaded until scrolling or moving the mouse"
+msgstr "Неки js извори неће бити учитани док се не помери страница или миш"
+
+#: inc/admin.php:1526 inc/admin.php:1533
+msgid "Delay Js"
+msgstr "Одложи Js"
+
+#: inc/admin.php:1108
+msgid "WP Fastest Cache Options"
+msgstr "Могућности WP Fastest Cache"
+
+#. Author URI of the plugin
+#: wpFastestCache.php
+msgid "https://www.wpfastestcache.com/"
+msgstr "https://www.wpfastestcache.com/"
+
+#: inc/admin.php:1818
+msgid "Clearing Specific Pages"
+msgstr "Чишћење одређених страница"
+
+#: templates/toolbar_settings.php:71
+msgid "Save"
+msgstr "Сачувај"
+
+#: templates/toolbar_settings.php:68
+msgid "Cancel"
+msgstr "Одустани"
+
+#: inc/admin-toolbar.php:123 templates/toolbar_settings.php:20
+msgid "Toolbar Settings"
+msgstr "Подешавања траке с алатима"
+
+#: inc/admin-toolbar.php:77 inc/admin-toolbar.php:113
+msgid "Clear Cache of All Sites"
+msgstr "Очисти кеш свих сајтова"
+
+#: wpFastestCache.php:471
+msgid "<a href=\"%s\">Settings</a>"
+msgstr "<a href=\"%s\">Подешавања</a>"
+
+#: inc/admin.php:1125 inc/admin.php:1663 inc/column.php:15
+msgid "Clear Cache"
+msgstr "Очисти кеш"
+
+#: inc/admin.php:1439 inc/admin.php:1445 inc/admin.php:1452
+msgid "Eliminate render-blocking JavaScript resources"
+msgstr "Уклони JavaScript ресурсе који блокирају приказ"
+
+#: inc/admin.php:504 inc/admin.php:507
+msgid "Options have been saved"
+msgstr "Могућности су сачуване"
+
+#: inc/admin.php:2025 templates/exclude.php:116
+msgid "has Woocommerce Items in Cart"
+msgstr "има Woocommerce ставке у корпи"
+
+#: inc/admin.php:2022 templates/exclude.php:113
+msgid "has Google Analytics Parameters"
+msgstr "има Google Analytics параметре"
+
+#: inc/admin.php:2012 templates/exclude.php:100
+msgid "Archives"
+msgstr "Архиве"
+
+#: templates/timeout.php:189
+msgid "Server Time"
+msgstr "Време сервера"
+
+#: templates/timeout.php:169
+msgid "delete the files"
+msgstr "избриши датотеке"
+
+#: inc/admin.php:1715 inc/admin.php:2017 templates/exclude.php:106
+#: templates/timeout.php:99
+msgid "Contains"
+msgstr "Садржи"
+
+#: inc/admin.php:1716 inc/admin.php:2018 templates/exclude.php:107
+#: templates/timeout.php:98
+msgid "Is Equal To"
+msgstr "Једнако је"
+
+#: inc/admin.php:1714 inc/admin.php:2016 templates/exclude.php:105
+#: templates/timeout.php:97
+msgid "Starts With"
+msgstr "Почиње са"
+
+#: inc/admin.php:1713 inc/admin.php:2009 templates/exclude.php:95
+#: templates/timeout.php:96
+msgid "Home Page"
+msgstr "Почетна страница"
+
+#: inc/admin.php:1712 templates/timeout.php:95
+msgid "All"
+msgstr "Сви"
+
+#: templates/exclude.php:66
+msgid "Exclude Page Wizard"
+msgstr "Чаробњак за изузимање страница"
+
+#: templates/timeout.php:124
+msgid "Then"
+msgstr "Затим"
+
+#: templates/exclude.php:89 templates/timeout.php:91
+msgid "If REQUEST_URI"
+msgstr "Ако је REQUEST_URI"
+
+#: templates/timeout.php:68
+msgid "Cache Timeout Wizard"
+msgstr "Чаробњак за истек кеша"
+
+#: templates/lazy_load.php:9
+msgid "Lazy Load Settings"
+msgstr "Подешавања лењог учитавања"
+
+#: templates/nginx_gzip.php:9
+msgid "Enable Gzip"
+msgstr "Омогући Gzip"
+
+#: templates/update_now.php:9
+msgid "Please Update"
+msgstr "Ажурирајте"
+
+#: templates/update_success.php:9
+msgid "Success"
+msgstr "Успех"
+
+#: templates/disable_wp_cron.php:20
+msgid "Warning"
+msgstr "Упозорење"
+
+#: inc/admin.php:1750 inc/admin.php:1822 inc/admin.php:2046 inc/admin.php:2063
+#: inc/admin.php:2082 inc/admin.php:2100 inc/admin.php:2120
+msgid "Add New Rule"
+msgstr "Додај ново правило"
+
+#: inc/admin-toolbar.php:104 inc/admin.php:1684
+msgid "Clear Cache and Minified CSS/JS"
+msgstr "Очисти кеш и умањене CSS/JS"
+
+#: inc/admin.php:1616 inc/admin.php:2291 inc/admin.php:2552
+msgid "Only available in Premium version"
+msgstr "Доступно само у Premium издању"
+
+#: templates/timeout.php:141
+msgid "Choose One"
+msgstr "Изаберите једно"
+
+#: inc/admin.php:1689
+msgid "All cache files will be removed as well"
+msgstr "Биће уклоњене и све датотеке кеша"
+
+#: inc/admin.php:1688
+msgid "If you modify any css file, you have to delete minified css files"
+msgstr "Ако измените било коју css датотеку, морате избрисати умањене css датотеке"
+
+#: inc/admin.php:1676 inc/admin.php:1690 inc/admin.php:1691
+msgid "Target folder"
+msgstr "Циљна фасцикла"
+
+#: inc/admin.php:1675
+msgid "You can delete all cache files"
+msgstr "Можете избрисати све датотеке кеша"
+
+#: inc/admin.php:1132
+msgid "Exclude"
+msgstr "Изузми"
+
+#: inc/admin.php:1126
+msgid "Image Optimization"
+msgstr "Оптимизација слика"
+
+#: inc/admin.php:1124
+msgid "Settings"
+msgstr "Подешавања"
+
+#: inc/admin.php:2264
+msgid "Database Cleanup"
+msgstr "Чишћење базе података"
+
+#: inc/admin.php:2153
+msgid "CDN Settings"
+msgstr "CDN подешавања"
+
+#: inc/admin.php:2116
+msgid "Exclude JS"
+msgstr "Изузми JS"
+
+#: inc/admin.php:2096
+msgid "Exclude CSS"
+msgstr "Изузми CSS"
+
+#: inc/admin.php:2078
+msgid "Exclude Cookies"
+msgstr "Изузми колачиће"
+
+#: inc/admin.php:2059
+msgid "Exclude User-Agents"
+msgstr "Изузми корисничке агенте"
+
+#: inc/admin.php:2042
+msgid "Exclude Pages"
+msgstr "Изузми странице"
+
+#: inc/admin.php:1875
+msgid "Optimize Image Tool"
+msgstr "Алат за оптимизацију слика"
+
+#: inc/admin.php:1705
+msgid "Timeout Rules"
+msgstr "Правила истека"
+
+#: inc/admin.php:1623
+msgid "Cache Statistics"
+msgstr "Статистика кеша"
+
+#: templates/updatepost.php:53
+msgid "Clear Cache of Post / Page"
+msgstr "Очисти кеш чланка / странице"
+
+#: templates/updatepost.php:29
+msgid "What do you want to happen after update a post or a page?"
+msgstr "Шта желите да се деси након ажурирања чланка или странице?"
+
+#: templates/newpost.php:58
+msgid "Clear Cache of Pagination"
+msgstr "Очисти кеш страничења"
+
+#: templates/newpost.php:57 templates/updatepost.php:55
+msgid "Clear Cache of Post Tags"
+msgstr "Очисти кеш ознака чланака"
+
+#: templates/newpost.php:56 templates/updatepost.php:54
+msgid "Clear Cache of Post Categories"
+msgstr "Очисти кеш категорија чланака"
+
+#: templates/newpost.php:55 templates/updatepost.php:56
+msgid "Clear Cache of Home page"
+msgstr "Очисти кеш почетне странице"
+
+#: inc/admin-toolbar.php:60 inc/admin-toolbar.php:96 inc/admin.php:1671
+#: templates/newpost.php:51 templates/updatepost.php:49
+msgid "Clear All Cache"
+msgstr "Очисти цео кеш"
+
+#: templates/newpost.php:29
+msgid "What do you want to happen after publishing the new post?"
+msgstr "Шта желите да се деси након објављивања новог чланка?"
+
+#: templates/newpost.php:68 templates/updatepost.php:64
+msgid "OK"
+msgstr "У реду"
+
+#: templates/preload.php:215
+msgid "Restart After Completed"
+msgstr "Поново покрени након довршетка"
+
+#: templates/preload.php:210
+msgid "pages per minute"
+msgstr "страница у минуту"
+
+#: templates/preload.php:132
+msgid "Custom Taxonomies"
+msgstr "Произвољне таксономије"
+
+#: templates/preload.php:127
+msgid "Custom Post Types"
+msgstr "Прилагођене врсте чланака"
+
+#: inc/admin.php:2015 templates/exclude.php:101 templates/preload.php:122
+msgid "Attachments"
+msgstr "Прилози"
+
+#: inc/admin.php:2011 templates/exclude.php:97 templates/preload.php:118
+msgid "Tags"
+msgstr "Ознаке"
+
+#: inc/admin.php:2014 templates/exclude.php:99 templates/preload.php:114
+msgid "Pages"
+msgstr "Странице"
+
+#: inc/admin.php:2010 templates/exclude.php:96 templates/preload.php:110
+msgid "Categories"
+msgstr "Категорије"
+
+#: inc/admin.php:2013 templates/exclude.php:98 templates/preload.php:106
+msgid "Posts"
+msgstr "Чланци"
+
+#: templates/preload.php:102
+msgid "Homepage"
+msgstr "Почетна страница"
+
+#: inc/admin.php:1386 inc/admin.php:1394 inc/admin.php:1400 inc/admin.php:1406
+msgid "Reduce HTTP requests through combined js files"
+msgstr "Смањите број HTTP захтева спајањем js датотека"
+
+#: inc/admin.php:1494 inc/admin.php:1516
+msgid "Load images and iframes when they enter the browsers viewport"
+msgstr "Учитавај слике и iframe-ове када уђу у видно поље прегледача"
+
+#: inc/admin.php:1465 inc/admin.php:1471 inc/admin.php:1478
+msgid "Load Google Fonts asynchronously"
+msgstr "Учитавај Google Fonts асинхроно"
+
+#: inc/admin.php:1464 inc/admin.php:1470 inc/admin.php:1477
+msgid "Google Fonts"
+msgstr "Google Fonts"
+
+#: inc/admin.php:1438 inc/admin.php:1444 inc/admin.php:1451
+msgid "Render Blocking Js"
+msgstr "Js који блокира приказ"
+
+#: inc/admin.php:1430
+msgid "You can remove the emoji inline css and wp-emoji-release.min.js"
+msgstr "Можете уклонити уметнути css за емоџије и wp-emoji-release.min.js"
+
+#: inc/admin.php:1429
+msgid "Disable Emojis"
+msgstr "Искључи емоџије"
+
+#: inc/admin.php:1424
+msgid "Reduce page load times for repeat visitors"
+msgstr "Смањите време учитавања страница за посетиоце који се враћају"
+
+#: inc/admin.php:1423
+msgid "Browser Caching"
+msgstr "Кеширање прегледача"
+
+#: inc/admin.php:1412
+msgid "Reduce the size of files sent from your server"
+msgstr "Смањите величину датотека које шаље ваш сервер"
+
+#: inc/admin.php:1411
+msgid "Gzip"
+msgstr "Gzip"
+
+#: inc/admin.php:1392 inc/admin.php:1399 inc/admin.php:1405
+msgid "Combine Js Plus"
+msgstr "Combine Js Plus"
+
+#: inc/admin.php:1385
+msgid "Combine Js"
+msgstr "Спој Js"
+
+#: inc/admin.php:1369 inc/admin.php:1374 inc/admin.php:1380
+msgid "You can decrease the size of js files"
+msgstr "Можете смањити величину js датотека"
+
+#: inc/admin.php:1368 inc/admin.php:1373 inc/admin.php:1379
+msgid "Minify Js"
+msgstr "Умањи Js"
+
+#: inc/admin.php:1361
+msgid "Reduce HTTP requests through combined css files"
+msgstr "Смањите број HTTP захтева спајањем css датотека"
+
+#: inc/admin.php:1360
+msgid "Combine Css"
+msgstr "Спој Css"
+
+#: inc/admin.php:1349 inc/admin.php:1354
+msgid "More powerful minify css"
+msgstr "Моћније умањивање css-а"
+
+#: inc/admin.php:1348 inc/admin.php:1353
+msgid "Minify Css Plus"
+msgstr "Minify Css Plus"
+
+#: inc/admin.php:1340
+msgid "You can decrease the size of css files"
+msgstr "Можете смањити величину css датотека"
+
+#: inc/admin.php:1339
+msgid "Minify Css"
+msgstr "Умањи Css"
+
+#: inc/admin.php:1327 inc/admin.php:1332
+msgid "More powerful minify html"
+msgstr "Моћније умањивање html-а"
+
+#: inc/admin.php:1326 inc/admin.php:1331
+msgid "Minify HTML Plus"
+msgstr "Minify HTML Plus"
+
+#: inc/admin.php:1320
+msgid "You can decrease the size of page"
+msgstr "Можете смањити величину странице"
+
+#: inc/admin.php:1319
+msgid "Minify HTML"
+msgstr "Умањи HTML"
+
+#: inc/admin.php:1311
+msgid "Clear cache files when a post or page is updated"
+msgstr "Очисти датотеке кеша када се чланак или страница ажурира"
+
+#: inc/admin.php:1310 templates/updatepost.php:18
+msgid "Update Post"
+msgstr "Ажурирање чланка"
+
+#: inc/admin.php:1304
+msgid "Clear cache files when a post or page is published"
+msgstr "Очисти датотеке кеша када се чланак или страница објави"
+
+#: inc/admin.php:1303 templates/newpost.php:18
+msgid "New Post"
+msgstr "Нови чланак"
+
+#: inc/admin.php:1271 inc/admin.php:1297
+msgid "Create cache for mobile theme"
+msgstr "Направи кеш за мобилну тему"
+
+#: inc/admin.php:1270 inc/admin.php:1296
+msgid "Mobile Theme"
+msgstr "Мобилна тема"
+
+#: inc/admin.php:1265
+msgid "Don't show the cached version for desktop to mobile devices"
+msgstr "Не приказуј издање из кеша за рачунаре мобилним уређајима"
+
+#: inc/admin.php:1264
+msgid "Mobile"
+msgstr "Мобилни"
+
+#: inc/admin.php:1260
+msgid "Don't show the cached version for logged-in users"
+msgstr "Не приказуј издање из кеша пријављеним корисницима"
+
+#: inc/admin.php:1259
+msgid "Logged-in Users"
+msgstr "Пријављени корисници"
+
+#: inc/admin.php:1227
+msgid "Create the cache of all the site automatically"
+msgstr "Аутоматски направи кеш целог сајта"
+
+#: inc/admin.php:1226
+msgid "Preload"
+msgstr "Предучитавање"
+
+#: inc/admin.php:1198 inc/admin.php:1204 inc/admin.php:1211 inc/admin.php:1218
+msgid "Reduce the number of SQL queries"
+msgstr "Смањите број SQL упита"
+
+#: inc/admin.php:1197 inc/admin.php:1203 inc/admin.php:1210 inc/admin.php:1217
+msgid "Widget Cache"
+msgstr "Кеш виџета"
+
+#: inc/admin.php:1188
+msgid "Enable"
+msgstr "Омогући"
+
+#: inc/admin.php:1187
+msgid "Cache System"
+msgstr "Систем кеша"
+
+#: wpFastestCache.php:2578
+msgid "Once Every 15 Days"
+msgstr "Једном у 15 дана"
+
+#: wpFastestCache.php:2566
+msgid "Once Every 7 Days"
+msgstr "Једном у 7 дана"
+
+#: wpFastestCache.php:2560
+msgid "Once Every 3 Days"
+msgstr "Једном у 3 дана"
+
+#: wpFastestCache.php:2548
+msgid "Once Every 10 Hours"
+msgstr "Једном у 10 сати"
+
+#: wpFastestCache.php:2542
+msgid "Once Every 9 Hours"
+msgstr "Једном у 9 сати"
+
+#: wpFastestCache.php:2536
+msgid "Once Every 8 Hours"
+msgstr "Једном у 8 сати"
+
+#: wpFastestCache.php:2530
+msgid "Once Every 7 Hours"
+msgstr "Једном у 7 сати"
+
+#: wpFastestCache.php:2518
+msgid "Once Every 5 Hours"
+msgstr "Једном у 5 сати"
+
+#: wpFastestCache.php:2512
+msgid "Once Every 4 Hours"
+msgstr "Једном у 4 сата"
+
+#: wpFastestCache.php:2506
+msgid "Once Every 3 Hours"
+msgstr "Једном у 3 сата"
+
+#: wpFastestCache.php:2500
+msgid "Once Every 2 Hours"
+msgstr "Једном у 2 сата"
+
+#: wpFastestCache.php:2572
+msgid "Once Every 10 Days"
+msgstr "Једном у 10 дана"
+
+#. Author of the plugin
+#: wpFastestCache.php
+msgid "Emre Vona"
+msgstr "Emre Vona"
+
+#. Description of the plugin
+#: wpFastestCache.php
+msgid "The simplest and fastest WP Cache system"
+msgstr "Најједноставнији и најбржи WP систем кеша"
+
+#. Plugin URI of the plugin
+#: wpFastestCache.php
+msgid "http://wordpress.org/plugins/wp-fastest-cache/"
+msgstr "http://wordpress.org/plugins/wp-fastest-cache/"
+
+#. Plugin Name of the plugin
+#: wpFastestCache.php inc/security.php:946 inc/security.php:963
+#: inc/security.php:1153
+msgid "WP Fastest Cache"
+msgstr "WP Fastest Cache"
+
+#: wpFastestCache.php:2590
+msgid "Once a Year"
+msgstr "Једном годишње"
+
+#: wpFastestCache.php:2584
+msgid "Once a Month"
+msgstr "Једном месечно"
+
+#: wpFastestCache.php:2554
+msgid "Once a Day"
+msgstr "Једном дневно"
+
+#: wpFastestCache.php:2524
+msgid "Once Every 6 Hours"
+msgstr "Једном у 6 сати"
+
+#: wpFastestCache.php:2494
+msgid "Once an Hour"
+msgstr "Једном на сат"
+
+#: wpFastestCache.php:2488
+msgid "Twice an Hour"
+msgstr "Двапут на сат"
+
+#: wpFastestCache.php:2482
+msgid "Once Every 15 Minutes"
+msgstr "Једном у 15 минута"
+
+#: wpFastestCache.php:2476
+msgid "Once Every 5 Minutes"
+msgstr "Једном у 5 минута"
+
+#: wpFastestCache.php:2470
+msgid "Once Every 1 Minute"
+msgstr "Једном у 1 минут"

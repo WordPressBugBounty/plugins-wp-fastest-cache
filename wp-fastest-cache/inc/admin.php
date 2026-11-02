@@ -13,26 +13,6 @@
 			$this->setCronJobSettings();
 			$this->addButtonOnEditor();
 			add_action('admin_enqueue_scripts', array($this, 'addJavaScript'));
-			add_filter('plugin_locale', array($this, 'my_plugin_locale_filter'), 10, 2);
-		}
-
-		public function my_plugin_locale_filter($locale, $domain){
-			if($domain === 'wp-fastest-cache'){
-
-				if(!isset($this->options->wpFastestCacheLanguage)){
-					return "en_US";
-				}
-
-				$locale = $this->options->wpFastestCacheLanguage;
-				
-				if(file_exists(WPFC_MAIN_PATH."languages/wp-fastest-cache-".$locale.".mo")){
-					return $locale;
-				}else{
-					return "en_US";
-				}
-			}
-
-			return $locale;
 		}
 
 		public function create_auto_cache_timeout($recurrance, $interval){
@@ -500,6 +480,10 @@
 				$htaccess = $this->to_move_gtranslate_rules($htaccess);
 
 				file_put_contents($path.".htaccess", $htaccess);
+
+				if(function_exists('wpfc_update_htaccess_blocked_ips') && apply_filters('wpfc_show_security_beta', false)){
+					wpfc_update_htaccess_blocked_ips();
+				}
 			}else{
 				return array(__("Options have been saved", 'wp-fastest-cache'), "updated");
 				//return array(".htaccess is not writable", "error");

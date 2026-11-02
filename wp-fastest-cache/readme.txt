@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.5.3
+Stable tag: 1.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,25 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.4 =
+* Fixed: The plugin language selector now works independently of the WordPress site language
+* to update the translations 
+* Removed unused static assets
+* Preserve the Security tab when navigating its links by keeping #wpfc-security in the URL
+* <strong>[FEATURE]</strong> Added the WPFC_CACHE_QUERYSTRING_PARAMS constant to cache allowlisted query-string URLs separately [<a target="_blank" href="https://www.wpfastestcache.com/tutorial/cache-url-with-querystring/#wpft-enable-cache-for-urls-with-query-strings">Details</a>]
+* Fixed: Prevented sitemap preload from saving an empty sitemap list when no child sitemaps could be extracted
+* Fixed: Incorrect term totals for custom taxonomies in preload
+* <strong>[FEATURE]</strong> Preloading for paginated home, category, tag and custom taxonomy archive pages
+* Test CDN connectivity using the active theme’s style.css URL instead of the CDN URL alone
+* Security Tool: Added detection and blocking for ICEcoder terminal command injection attempts
+* Security Tool: Added detection and blocking for React2Shell
+* Security Tool: Added detection and blocking for Oversized POST Parameter Attacks
+* Fixed: Deleting an IP from Security Center now removes all associated child log entries along with the parent record, preventing orphaned security logs
+* Fixed: Prevented unnecessary cache clearing when Flamingo saves contact form submissions as posts
+* Prevent caching of WordPress activation pages (wp-activate.php) by excluding activation requests based on both the request URL and WordPress’s current page context
+* Skip cache generation during WordPress installation and for requests carrying activation-related cookies (wp-activate-*)
+* Prevent caching responses that include private or non-cacheable HTTP headers, including Cache-Control: no-store, private, no-cache, expired Expires, and Set-Cookie
 
 = 1.5.3 =
 * <strong>[FEATURE]</strong> Added an Exclude Pages rule to exclude URLs containing Facebook Click ID (fbclid) parameters from cache
