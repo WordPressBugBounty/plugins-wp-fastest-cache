@@ -175,17 +175,17 @@
 						if(!preg_match("/\/$/", $_SERVER["REQUEST_URI"])){
 							if($this->has_cacheable_query_string_params()){
 								
-							}else if(preg_match("/[?&](y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $this->cacheFilePath)){
+							}else if(preg_match("/[?&](".WPFC_YANDEX_QUERY_PARAM_PATTERN.")=/i", $this->cacheFilePath)){
 								// yclid
 								// yadclid
 								// ysclid
-							}else if(preg_match("/gclid\=/i", $this->cacheFilePath)){
+							}else if(preg_match("/".WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN."\=/i", $this->cacheFilePath)){
 								
-							}else if(preg_match("/fbclid\=/i", $this->cacheFilePath)){
+							}else if(preg_match("/".WPFC_FACEBOOK_QUERY_PARAM_PATTERN."\=/i", $this->cacheFilePath)){
 
-							}else if(preg_match("/utm_(source|medium|campaign|content|term)/i", $this->cacheFilePath)){
+							}else if(preg_match("/".WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN."/i", $this->cacheFilePath)){
 
-							}else if(preg_match("/srsltid\=/i", $this->cacheFilePath)){
+							}else if(preg_match("/".WPFC_GOOGLE_MERCHANT_QUERY_PARAM_PATTERN."\=/i", $this->cacheFilePath)){
 
 							}else{
 								$this->cacheFilePath = false;
@@ -242,7 +242,7 @@
 				foreach ($query_params as $key => $query_param) {
 
 					// Google Ads Click & Conversion Parameters
-					if(preg_match("/^(gclid|gbraid|wbraid|gclsrc)\=/i", $query_param)){
+					if(preg_match("/^(".WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN.")\=/i", $query_param)){
 						continue;
 					}
 
@@ -252,17 +252,17 @@
 					}
 
 					// Google UTM Campaign Parameters
-					if(preg_match("/^utm_(source|medium|campaign|content|term)/i", $query_param)){
+					if(preg_match("/^".WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN."=/i", $query_param)){
 						continue;
 					}
 
 					// Google Merchant Center
-					if(preg_match("/^srsltid\=/i", $query_param)){
+					if(preg_match("/^".WPFC_GOOGLE_MERCHANT_QUERY_PARAM_PATTERN."\=/i", $query_param)){
 						continue;
 					}
 
 					//to remove query strings for cache if Yandex parameters are set
-					if(preg_match("/^(y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $query_param)){
+					if(preg_match("/^(".WPFC_YANDEX_QUERY_PARAM_PATTERN.")=/i", $query_param)){
 						// yclid
 						// yadclid
 						// ysclid
@@ -271,7 +271,7 @@
 					}
 
 					//to remove query strings for cache if facebook parameters are set
-					if(preg_match("/^fbclid\=/i", $query_param)){
+					if(preg_match("/^".WPFC_FACEBOOK_QUERY_PARAM_PATTERN."\=/i", $query_param)){
 						continue;
 					}
 
@@ -685,7 +685,7 @@
 					$value->type = isset($value->type) ? $value->type : "page";
 
 					if($value->prefix == "yandexclickid"){
-						if(preg_match("/[?&](y(?:ad|m|s|z)?clid|yqrid|ybaip|etext)=/i", $request_url)){
+						if(preg_match("/[?&](".WPFC_YANDEX_QUERY_PARAM_PATTERN.")=/i", $request_url)){
 							// yclid
 							// yadclid
 							// ysclid
@@ -693,11 +693,15 @@
 							return true;
 						}
 					}else if($value->prefix == "googleanalytics"){
-						if(preg_match("/utm_(source|medium|campaign|content|term)/i", $request_url)){
+						if(preg_match("/".WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN."/i", $request_url)){
+							return true;
+						}
+					}else if($value->prefix == "googleads"){
+						if(preg_match("/(?:^|[?&])".WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN."=/i", $request_url)){
 							return true;
 						}
 					}else if($value->prefix == "facebookclickid"){
-						if(preg_match("/(?:^|[?&])fbclid=/i", $request_url)){
+						if(preg_match("/(?:^|[?&])".WPFC_FACEBOOK_QUERY_PARAM_PATTERN."=/i", $request_url)){
 							return true;
 						}
 					}else if(isset($value->prefix) && $value->prefix && ($value->type == "page")){
@@ -1097,9 +1101,11 @@
 						return $buffer."<!-- Cache has NOT been created due to optimized resource -->";
 					}
 
+                    /*
 					if($this->has_non_cacheable_headers()){
-						return $content;
+						return $content."<!-- Cache has NOT been created due to non-cacheable headers -->";
 					}
+                    */
 
 					if($this->cacheFilePath){
 						if($this->is_html()){

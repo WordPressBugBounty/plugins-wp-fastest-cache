@@ -4,7 +4,7 @@ Donate link: https://profiles.wordpress.org/emrevona/
 Tags: cache, Optimize, performance, PageSpeed, core web vitals
 Requires at least: 5.7
 Tested up to: 7.1
-Stable tag: 1.5.4
+Stable tag: 1.5.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,18 @@ Chinese Simplified (China), Chinese Traditional (Taiwan), Czech, Dutch (Belgium)
 18. Database Cleanup
 
 == Changelog ==
+
+= 1.5.5 =
+* Added path validation to singleDeleteCache() and delete_next_prev_cache() to prevent directory traversal through percent-encoded URLs before cache paths are deleted
+* Fixed: Google Analytics campaign parameters (utm_source, utm_medium, utm_campaign, utm_term, and utm_content) not being served from the main page cache via .htaccess
+* Fixed: The Google Analytics exclusion rule not being added to the Start WPFC Exclude section in .htaccess
+* Added Google Ads query parameter support for cache serving and page exclusion
+* Fixed: XML cache files are now served directly via .htaccess instead of being served through PHP
+* Fixed: Exclude Pages “Contains” rule not matching query string parameters in URLs
+* Refactored cache purge handling to reduce duplicated Varnish and Cloudflare logic
+* Refactored cache deletion logic by centralizing desktop and mobile cache path cleanup
+* Improved WooCommerce product cache clearing for WPML translations
+* Reverted: Prevent caching responses that include private or non-cacheable HTTP headers, including Cache-Control: no-store, private, no-cache, expired Expires, and Set-Cookie
 
 = 1.5.4 =
 * Fixed: The plugin language selector now works independently of the WordPress site language

@@ -111,6 +111,7 @@
 
 										    				<optgroup label="Special">
 										    					<option value="googleanalytics"><?php _e("has Google Analytics Parameters", "wp-fastest-cache"); ?></option>
+																												<option value="googleads"><?php _e("has Google Ads Parameters", "wp-fastest-cache"); ?></option>
 													<option value="yandexclickid"><?php _e("has Yandex Metrica Parameters", "wp-fastest-cache"); ?></option>		
 													<option value="facebookclickid"><?php _e("has Facebook Click ID Parameters", "wp-fastest-cache"); ?></option>
 										    					<option value="woocommerce_items_in_cart"><?php _e("has Woocommerce Items in Cart", "wp-fastest-cache"); ?></option>
@@ -197,7 +198,7 @@
 				var clone_modal_id = "wpfc-modal-exclude-" + new Date().getTime();
 
 				clone_modal.find("select").change(function(e){
-					if(jQuery(this).val().match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
+					if(jQuery(this).val().match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|googleads|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
 						clone_modal.find("input[name='wpfc-exclude-rule-content']").closest("td").hide();
 						clone_modal.find("input[name='wpfc-exclude-rule-content']").val(jQuery(this).val());
 
@@ -213,7 +214,7 @@
 				});
 
 
-				if(e.prefix.match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
+				if(e.prefix.match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|googleads|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
 					clone_modal.find("input[name='wpfc-exclude-rule-content']").closest("td").hide();
 
 					clone_modal.find("select").closest("td").width(395);
@@ -338,6 +339,8 @@
 				return "Attachments";
 			}else if(text == "googleanalytics"){
 				return "Google Analytics Parameters";
+			}else if(text == "googleads"){
+				return "Google Ads Parameters";
 			}else if(text == "yandexclickid"){
 				return "Yandex Metrica Parameters";
 			}else if(text == "facebookclickid"){
@@ -381,7 +384,7 @@
 				}
 
 				if(type == "page" || type == "css" || type == "js"){
-					if(prefix.match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
+					if(prefix.match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|googleads|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
 						if(prefix == "homepage"){
 							return "The " + b_start + "homepage" + b_end + " has been excluded";
 						}else{
@@ -451,7 +454,7 @@
 
 
 				clone_modal.find("select").change(function(){
-					if(jQuery(this).val().match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
+					if(jQuery(this).val().match(/^(homepage|category|tag|archive|post|page|attachment|googleanalytics|googleads|yandexclickid|facebookclickid|woocommerce_items_in_cart)$/)){
 						clone_modal.find("input[name='wpfc-exclude-rule-content']").closest("td").hide();
 						clone_modal.find("input[name='wpfc-exclude-rule-content']").val(jQuery(this).val());
 

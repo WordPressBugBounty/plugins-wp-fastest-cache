@@ -3,7 +3,7 @@
 Plugin Name: WP Fastest Cache
 Plugin URI: http://wordpress.org/plugins/wp-fastest-cache/
 Description: The simplest and fastest WP Cache system
-Version: 1.5.4
+Version: 1.5.5
 Author: Emre Vona
 Author URI: https://www.wpfastestcache.com/
 Text Domain: wp-fastest-cache
@@ -37,6 +37,26 @@ GNU General Public License for more details.
 
 	if (!defined('WPFC_MAIN_PATH')) {
 		define("WPFC_MAIN_PATH", plugin_dir_path( __FILE__ ));
+	}
+
+	if (!defined('WPFC_FACEBOOK_QUERY_PARAM_PATTERN')) {
+		define("WPFC_FACEBOOK_QUERY_PARAM_PATTERN", "fbclid");
+	}
+
+	if (!defined('WPFC_YANDEX_QUERY_PARAM_PATTERN')) {
+		define("WPFC_YANDEX_QUERY_PARAM_PATTERN", "yclid|yadclid|ymclid|ysclid|yzclid|yqrid|ybaip|etext");
+	}
+
+	if (!defined('WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN')) {
+		define("WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN", "utm_(?:source|medium|campaign|term|content)");
+	}
+
+	if (!defined('WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN')) {
+		define("WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN", "gclid|gbraid|wbraid|gclsrc");
+	}
+
+	if (!defined('WPFC_GOOGLE_MERCHANT_QUERY_PARAM_PATTERN')) {
+		define("WPFC_GOOGLE_MERCHANT_QUERY_PARAM_PATTERN", "srsltid");
 	}
 
 	include_once WPFC_MAIN_PATH . 'inc/security.php';
@@ -233,7 +253,7 @@ GNU General Public License for more details.
 				add_action('transition_post_status',  array($this, 'on_all_status_transitions'), 10, 3 );
 				
 				// when the regular price is updated, the "transition_post_status" action cannot catch it
-				add_action('woocommerce_update_product',  array($this, 'clear_cache_after_woocommerce_update_product'), 10, 1);
+				add_action('woocommerce_product_object_updated_props',  array($this, 'clear_cache_after_woocommerce_update_product'), 10, 2);
 
 				$this->commentHooks();
 
@@ -343,21 +363,7 @@ GNU General Public License for more details.
 
             $path = urldecode($path);
 
-            if (strpos($path, '..') !== false) {
-                return false;
-            }
-
-            $cache_path = $this->getWpContentDir("/cache/all/" . $path);
-            $mobile_cache_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/" . $path);
-
-
-            if(file_exists($cache_path)){
-                @unlink($cache_path);
-            }
-
-            if(file_exists($mobile_cache_path)){
-                @unlink($mobile_cache_path);
-            }
+			$this->delete_cache_variants($path);
 
         }
 
@@ -967,11 +973,11 @@ GNU General Public License for more details.
 
 				if(isset($url["path"])){
 					if($url["path"] == "/"){
-						$this->rm_folder_recursively($this->getWpContentDir("/cache/all/index.html"));
+						$this->delete_cache_variants("index.html");
 					}else{
 						// to prevent changing path with ../ or with another method
 						if($url["path"] == realpath(".".$url["path"])){
-							$this->rm_folder_recursively($this->getWpContentDir("/cache/all").$url["path"]);
+							$this->delete_cache_variants($url["path"]);
 						}
 					}
 				}
@@ -1197,48 +1203,22 @@ GNU General Public License for more details.
 				die(json_encode(array("Security Error!", "error", "alert")));
 			}
 
-			if($varnish_datas = get_option("WpFastestCacheVarnish")){
-				include_once('inc/varnish.php');
-				VarnishWPFC::purge_cache($varnish_datas);
-			}
-
-			include_once('inc/cdn.php');
-			CdnWPFC::cloudflare_clear_cache();
+			$this->purge_external_cache();
 
 			if(isset($_GET["path"])){
-				if($_GET["path"]){
-					if($_GET["path"] == "/"){
-						$_GET["path"] = $_GET["path"]."index.html";
+				$cache_path = $_GET["path"];
+
+				if($cache_path){
+					if($cache_path == "/"){
+						$cache_path .= "index.html";
 					}
 				}else{
-					$_GET["path"] = "/index.html";
+					$cache_path = "/index.html";
 				}
 
-				$_GET["path"] = urldecode(esc_url_raw($_GET["path"]));
+				$cache_path = urldecode(esc_url_raw($cache_path));
 
-				// for security
-				if(preg_match("/\.{2,}/", $_GET["path"])){
-					die("May be Directory Traversal Attack");
-				}
-
-				$paths = array();
-
-				array_push($paths, $this->getWpContentDir("/cache/all").$_GET["path"]);
-
-				if(class_exists("WpFcMobileCache")){
-					$wpfc_mobile = new WpFcMobileCache();
-					array_push($paths, $this->getWpContentDir("/cache/wpfc-mobile-cache").$_GET["path"]);
-				}
-
-				foreach ($paths as $key => $value){
-					if(file_exists($value)){
-						if(preg_match("/\/(all|wpfc-mobile-cache)\/index\.html$/i", $value)){
-							@unlink($value);
-						}else{
-							$this->rm_folder_recursively($value);
-						}
-					}
-				}
+				$this->delete_cache_variants($cache_path);
 
 				$this->delete_multiple_domain_mapping_cache();
 
@@ -1381,11 +1361,50 @@ GNU General Public License for more details.
 			}
 		}
 
-		public function clear_cache_after_woocommerce_update_product($product_id){
-			if(!$this->deleted_before){
-				$this->singleDeleteCache(false, $product_id);
-			}
+		public function clear_cache_after_woocommerce_update_product($product, $updated_props) {
+
+            $product_ids = array();
+            $product_id = $product->get_id();
+
+            if(!$this->deleted_before){
+                // The product cache is already cleared when updated via wp-admin, so we have to check it
+                $product_ids = array($product_id);
+            }
+
+            if ( array_intersect( array('regular_price', 'sale_price'), (array) $updated_props) ) {
+
+                // WPML stores each translated product as a separate post. Clear the
+                // cache for every translation when the product price changes.
+                if($product_id && $this->isPluginActive('sitepress-multilingual-cms/sitepress.php')){
+                    $active_languages = apply_filters('wpml_active_languages', null, array('skip_missing' => 0));
+
+                    if(is_array($active_languages)){
+
+                        foreach($active_languages as $language_code => $language){
+                            $translated_product_id = apply_filters(
+                                'wpml_object_id',
+                                $product_id,
+                                'product',
+                                false,
+                                $language_code
+                            );
+
+                            if($translated_product_id && $translated_product_id != $product_id){
+                                $product_ids[] = (int) $translated_product_id;
+                            }
+                        }
+
+                    }
+                }
+
+            }
+
+            foreach(array_unique($product_ids) as $translated_product_id){
+                $this->singleDeleteCache(false, $translated_product_id);
+            }
+
 		}
+
 
 		public function on_all_status_transitions($new_status, $old_status, $post){
 			$this->deleted_before = true;
@@ -1519,37 +1538,14 @@ GNU General Public License for more details.
 
 					if(preg_match("/https?:\/\/[^\/]+\/(.+)/", $value->url, $out)){
 
-						if(preg_match("/\.{2,}/", $out[1])){
-							// to prevent Directory Traversal Attack
-							continue;
-						}
-
 						if(preg_match("/\/\(\.\*\)/", $out[1])){
 							$out[1] = str_replace("(.*)", "", $out[1]);
 
-							$path = $this->getWpContentDir("/cache/all/").$out[1];
-							$mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
+							$this->delete_cache_variants($out[1]);
 						}else{
 							$out[1] = $out[1]."index.html";
 
-							$path = $this->getWpContentDir("/cache/all/").$out[1];
-							$mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
-						}
-
-						if(!is_dir($this->getWpContentDir("/cache/tmpWpfc"))){
-							@mkdir($this->getWpContentDir("/cache/tmpWpfc"), 0755, true);
-						}
-
-						if(is_dir($path)){
-							rename($path, $this->getWpContentDir("/cache/tmpWpfc/").time());
-						}else if(is_file($path)){
-							@unlink($path);
-						}
-
-						if(is_dir($mobile_path)){
-							rename($mobile_path, $this->getWpContentDir("/cache/tmpWpfc/mobile_").time());
-						}else if(is_file($mobile_path)){
-							@unlink($mobile_path);
+							$this->delete_cache_variants($out[1]);
 						}
 						
 					}
@@ -1559,13 +1555,7 @@ GNU General Public License for more details.
 		}
 
 		public function singleDeleteCache($comment_id = false, $post_id = false, $to_clear_parents = true){
-			if($varnish_datas = get_option("WpFastestCacheVarnish")){
-				include_once('inc/varnish.php');
-				VarnishWPFC::purge_cache($varnish_datas);
-			}
-
-			include_once('inc/cdn.php');
-			CdnWPFC::cloudflare_clear_cache();
+			$this->purge_external_cache();
 
 			$to_clear_feed = true;
 
@@ -1610,8 +1600,6 @@ GNU General Public License for more details.
 
 				$permalink = urldecode(get_permalink($post_id));
 
-
-
 				//for trash contents
 				if(preg_match("/\/\?(p|page_id)\=\d+/i", $permalink)){
 					$post = get_post($post_id);
@@ -1627,11 +1615,7 @@ GNU General Public License for more details.
 					$permalink = preg_replace("/__trashed\/(\d+)$/", "/$1", $permalink);
 				}
 
-
-
 				if(preg_match("/https?:\/\/[^\/]+\/(.+)/", $permalink, $out)){
-					$path = $this->getWpContentDir("/cache/all/").$out[1];
-					$mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
 
 					if($this->isPluginActive("wp-fastest-cache-premium/wpFastestCachePremium.php")){
 						include_once $this->get_premium_path("logs.php");
@@ -1639,43 +1623,18 @@ GNU General Public License for more details.
 						$log->action();
 					}
 
-					$files = array();
-
-					if(is_dir($path)){
-						array_push($files, $path);
-					}
-
-					if(is_dir($mobile_path)){
-						array_push($files, $mobile_path);
-					}
-
-					if( defined('WPFC_CACHE_QUERYSTRING_PARAMS') && WPFC_CACHE_QUERYSTRING_PARAMS ){
-						$files_with_query_string = glob($path."\?*");
-						$mobile_files_with_query_string = glob($mobile_path."\?*");
-
-						if(is_array($files_with_query_string) && (count($files_with_query_string) > 0)){
-							$files = array_merge($files, $files_with_query_string);
-						}
-
-						if(is_array($mobile_files_with_query_string) && (count($mobile_files_with_query_string) > 0)){
-							$files = array_merge($files, $mobile_files_with_query_string);
-						}
-					}
+                    $this->delete_cache_variants($out[1]);
 
 					if($to_clear_feed){
 						// to clear cache of /feed
 						if(preg_match("/https?:\/\/[^\/]+\/(.+)/", get_feed_link(), $feed_out)){
-							array_push($files, $this->getWpContentDir("/cache/all/").$feed_out[1]);
+							$this->delete_cache_variants($feed_out[1]);
 						}
 
 						// to clear cache of /comments/feed/
 						if(preg_match("/https?:\/\/[^\/]+\/(.+)/", get_feed_link("comments_"), $comment_feed_out)){
-							array_push($files, $this->getWpContentDir("/cache/all/").$comment_feed_out[1]);
+							$this->delete_cache_variants($comment_feed_out[1]);
 						}
-					}
-
-					foreach((array)$files as $file){
-						$this->rm_folder_recursively($file);
 					}
 				}
 
@@ -1721,16 +1680,7 @@ GNU General Public License for more details.
 					$permalink = urldecode(get_permalink($value->ID));
 
 					if(preg_match("/https?:\/\/[^\/]+\/(.+)/", $permalink, $out)){
-						$path = $this->getWpContentDir("/cache/all/").$out[1];
-						$mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
-
-						if(is_dir($path)){
-							$this->rm_folder_recursively($path);
-						}
-
-						if(is_dir($mobile_path)){
-							$this->rm_folder_recursively($mobile_path);
-						}
+						$this->delete_cache_variants($out[1]);
 					}
 				}
 
@@ -1764,9 +1714,11 @@ GNU General Public License for more details.
 								}
 							}
 						}else{
-							$mapping_domain_path = preg_replace("/(\/cache\/[^\/]+\/all)/", "/cache/".$mapping_value["domain"]."/all", $this->getWpContentDir("/cache/all/index.html"));
+							$cache_file = $this->getWpContentDir("/cache/".$mapping_value["domain"]."/all/index.html");
 
-							@unlink($mapping_domain_path);
+							if(file_exists($cache_file)){
+								unlink($cache_file);
+							}
 						}
 					}
 				}
@@ -1778,39 +1730,7 @@ GNU General Public License for more details.
 			$permalink = get_author_posts_url($author_id);
 
 			if(preg_match("/https?:\/\/[^\/]+\/(.+)/", $permalink, $out)){
-				$path = $this->getWpContentDir("/cache/all/").$out[1];
-				$mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
-					
-				$this->move_folder_to_tmpWpfc($path);
-				$this->move_folder_to_tmpWpfc($mobile_path);
-			}
-		}
-
-		public function move_folder_to_tmpWpfc($path = false){
-			if(!is_dir($this->getWpContentDir("/cache/tmpWpfc"))){
-				@mkdir($this->getWpContentDir("/cache/tmpWpfc"), 0755, true);
-			}
-
-			if(!$path){
-				return false;
-			}
-
-			if(!is_dir($this->getWpContentDir("/cache/tmpWpfc"))){
-				return false;
-			}
-
-			if(is_dir($path)){
-				preg_match("/\/([^\/]+)\/?$/", $path, $type);
-
-				if(isset($type[1])){
-					if(preg_match("/\/cache\/wpfc-mobile-cache\//", $path)){
-						$type[1] = "m_".$type[1];
-					}
-
-					$move_to = $this->getWpContentDir("/cache/tmpWpfc/").$type[1]."_".time();
-
-					rename($path, $move_to);
-				}
+				$this->delete_cache_variants($out[1]);
 			}
 		}
 
@@ -1831,22 +1751,13 @@ GNU General Public License for more details.
 				$path = urldecode($path);
 
 				// to remove the cache of tag/cat
-				if(file_exists($this->getWpContentDir("/cache/all/").$path."/index.html")){
-					@unlink($this->getWpContentDir("/cache/all/").$path."/index.html");
-				}
-
-				if(file_exists($this->getWpContentDir("/cache/wpfc-mobile-cache/").$path."/index.html")){
-					@unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/").$path."/index.html");
-				}
-
+				$this->delete_cache_variants($path."/index.html");
 
 				// to remove the cache of the pages
-				$this->rm_folder_recursively($this->getWpContentDir("/cache/all/").$path."/page");
-				$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/").$path."/page");
+				$this->delete_cache_variants($path."/page");
 
 				// to remove the cache of the feeds
-				$this->rm_folder_recursively($this->getWpContentDir("/cache/all/").$path."/feed");
-				$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/").$path."/feed");
+				$this->delete_cache_variants($path."/feed");
 			}
 
 			if($term->parent > 0){
@@ -1858,13 +1769,11 @@ GNU General Public License for more details.
 			}
 		}
 
-		public function unlink($path){
-			if(file_exists($path)){
-				unlink($path);
-			}
-		}
-
-		public function deleteHomePageCache($log = true){
+		/**
+		 * Purges cache layers outside WP Fastest Cache before local cache files
+		 * are removed.
+		 */
+		private function purge_external_cache(){
 			if($varnish_datas = get_option("WpFastestCacheVarnish")){
 				include_once('inc/varnish.php');
 				VarnishWPFC::purge_cache($varnish_datas);
@@ -1872,6 +1781,37 @@ GNU General Public License for more details.
 
 			include_once('inc/cdn.php');
 			CdnWPFC::cloudflare_clear_cache();
+		}
+
+		private function delete_cache_variants($relative_path){
+            
+            // for security
+            if(preg_match("/\.{2,}/", $relative_path)){
+                die("May be Directory Traversal Attack");
+            }
+
+			$relative_path = ltrim($relative_path, "/");
+			$paths = array(
+				$this->getWpContentDir("/cache/all/").$relative_path,
+				$this->getWpContentDir("/cache/wpfc-mobile-cache/").$relative_path
+			);
+			$tmp_path = $this->getWpContentDir("/cache/tmpWpfc");
+
+			if(!is_dir($tmp_path)){
+				@mkdir($tmp_path, 0755, true);
+			}
+
+			foreach($paths as $path){
+				if(file_exists($path)){
+					$tmp_file = $tmp_path."/".basename($path)."-".str_replace(".", "", (string)microtime(true));
+
+					@rename($path, $tmp_file);
+				}
+			}
+		}
+
+		public function deleteHomePageCache($log = true){
+			$this->purge_external_cache();
 
 			$site_url_path = preg_replace("/https?\:\/\/[^\/]+/i", "", site_url());
 			$home_url_path = preg_replace("/https?\:\/\/[^\/]+/i", "", home_url());
@@ -1880,12 +1820,9 @@ GNU General Public License for more details.
 				$site_url_path = trim($site_url_path, "/");
 
 				if($site_url_path){
-					$this->unlink($this->getWpContentDir("/cache/all/").$site_url_path."/index.html");
-					$this->unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/").$site_url_path."/index.html");
-
+						$this->delete_cache_variants($site_url_path."/index.html");
 					//to clear pagination of homepage cache
-					$this->rm_folder_recursively($this->getWpContentDir("/cache/all/").$site_url_path."/page");
-					$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/").$site_url_path."/page");
+					$this->delete_cache_variants($site_url_path."/page");
 				}
 			}
 
@@ -1893,12 +1830,9 @@ GNU General Public License for more details.
 				$home_url_path = trim($home_url_path, "/");
 
 				if($home_url_path){
-					$this->unlink($this->getWpContentDir("/cache/all/").$home_url_path."/index.html");
-					$this->unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/").$home_url_path."/index.html");
-
+						$this->delete_cache_variants($home_url_path."/index.html");
 					//to clear pagination of homepage cache
-					$this->rm_folder_recursively($this->getWpContentDir("/cache/all/").$home_url_path."/page");
-					$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/").$home_url_path."/page");
+					$this->delete_cache_variants($home_url_path."/page");
 				}
 			}
 
@@ -1910,28 +1844,17 @@ GNU General Public License for more details.
 						$store_url_path = trim($store_url_path, "/");
 
 						if($store_url_path){
-							if(file_exists($this->getWpContentDir("/cache/all/").$store_url_path."/index.html")){
-								@unlink($this->getWpContentDir("/cache/all/").$store_url_path."/index.html");
-							}
-
-							if(file_exists($this->getWpContentDir("/cache/wpfc-mobile-cache/").$store_url_path."/index.html")){
-								@unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/").$store_url_path."/index.html");
-							}
-
+								$this->delete_cache_variants($store_url_path."/index.html");
 							//to clear pagination of store homepage cache
-							$this->rm_folder_recursively($this->getWpContentDir("/cache/all/").$store_url_path."/page");
-							$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/").$store_url_path."/page");
+							$this->delete_cache_variants($store_url_path."/page");
 						}
 					}
 				}
 			}
 
-			$this->unlink($this->getWpContentDir("/cache/all/index.html"));
-			$this->unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/index.html"));
-
+			$this->delete_cache_variants("index.html");
 			//to clear pagination of homepage cache
-			$this->rm_folder_recursively($this->getWpContentDir("/cache/all/page"));
-			$this->rm_folder_recursively($this->getWpContentDir("/cache/wpfc-mobile-cache/page"));
+			$this->delete_cache_variants("page");
 
 			// options-reading.php - static posts page
 			if($page_for_posts_id = get_option('page_for_posts')){
@@ -1943,11 +1866,7 @@ GNU General Public License for more details.
 				$page_for_posts_permalink = preg_replace("/__trashed\/(\d+)$/", "/$1", $page_for_posts_permalink);
 
 				if(preg_match("/https?:\/\/[^\/]+\/(.+)/", $page_for_posts_permalink, $out)){
-					$page_for_posts_path = $this->getWpContentDir("/cache/all/").$out[1];
-					$page_for_posts_mobile_path = $this->getWpContentDir("/cache/wpfc-mobile-cache/").$out[1];
-					
-					$this->rm_folder_recursively($page_for_posts_path);
-					$this->rm_folder_recursively($page_for_posts_mobile_path);
+					$this->delete_cache_variants($out[1]);
 				}
 			}
 
@@ -1963,13 +1882,7 @@ GNU General Public License for more details.
 		}
 
 		public function deleteCache($minified = false){
-			if($varnish_datas = get_option("WpFastestCacheVarnish")){
-				include_once('inc/varnish.php');
-				VarnishWPFC::purge_cache($varnish_datas);
-			}
-
-			include_once('inc/cdn.php');
-			CdnWPFC::cloudflare_clear_cache();
+			$this->purge_external_cache();
 
 			$this->set_preload();
 
@@ -2149,8 +2062,7 @@ GNU General Public License for more details.
 				}else if($rule->prefix == "exact"){
 					$rule->content = trim($rule->content, "/");
 
-					@unlink($this->getWpContentDir("/cache/all/").$rule->content."/index.html");
-					@unlink($this->getWpContentDir("/cache/wpfc-mobile-cache/").$rule->content."/index.html");
+					$this->delete_cache_variants($rule->content."/index.html");
 				}
 
 				if($rule->prefix != "all"){
@@ -2300,11 +2212,19 @@ GNU General Public License for more details.
                     if($value->type == "page"){
 
 						if(isset($value->prefix) && $value->prefix == "facebookclickid"){
-							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !fbclid= [NC]\n";
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)".WPFC_FACEBOOK_QUERY_PARAM_PATTERN."= [NC]\n";
 						}
 
 						if(isset($value->prefix) && $value->prefix == "yandexclickid"){
-							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)(?:yclid|yadclid|ymclid|ysclid|yzclid|yqrid|ybaip|etext)= [NC]\n";
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)(?:".WPFC_YANDEX_QUERY_PARAM_PATTERN.")= [NC]\n";
+						}
+
+						if(isset($value->prefix) && $value->prefix == "googleanalytics"){
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)".WPFC_GOOGLE_ANALYTICS_QUERY_PARAM_PATTERN."= [NC]\n";
+						}
+
+						if(isset($value->prefix) && $value->prefix == "googleads"){
+							$htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !(?:^|&)".WPFC_GOOGLE_ADS_QUERY_PARAM_PATTERN."= [NC]\n";
 						}
 
                         // REGEX (escape yok!)
@@ -2331,6 +2251,9 @@ GNU General Public License for more details.
 
                             if($value->prefix == "contain"){
                                 $htaccess_page_rules .= "RewriteCond %{REQUEST_URI} !".$safe_content." [NC]\n";
+                                // Apache's REQUEST_URI does not include the query string.
+                                // Check it separately so Contains also matches URL parameters.
+                                $htaccess_page_rules .= "RewriteCond %{QUERY_STRING} !".$safe_content." [NC]\n";
                             }
 
                             if($value->prefix == "exact"){
